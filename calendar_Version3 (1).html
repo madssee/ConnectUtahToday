@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Event Calendar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a> |
+    <a href="calendar.html">Event Calendar</a> |
+    <a href="volunteer.html">Volunteering</a>
+  </nav>
+  <main>
+    <h1>Event Calendar</h1>
+    <!-- Embedded Google Calendar -->
+    <iframe 
+      src="https://calendar.google.com/calendar/embed?src=889b58a5eb5476990c478facc6e406cf64ca2d7ff73473cfa4b24f435b895d00%40group.calendar.google.com&ctz=UTC"
+      style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+
+    <!-- Event Feed -->
+    <div id="event-feed" style="margin-top: 20px;">
+      <h2>This Month’s Events</h2>
+      <div id="event-list">Loading events...</div>
+    </div>
+  </main>
+  
+  <script>
+    const calendarId = '889b58a5eb5476990c478facc6e406cf64ca2d7ff73473cfa4b24f435b895d00@group.calendar.google.com';
+    const apiKey = 'AIzaSyCSqBmrCa7x0AKSix1HzKM8y7KIuMTHGPU';
+
+    // Map keywords to local assets folder PNG files
+    const imageMap = {
+      'SCLMutualAid': 'assets/SCLMutualAid.png',
+      'CUT': 'assets/CUT.png',
+      'BrownBerets': 'assets/BrownBerets.png',
+      'WildUtah': 'assets/WildUtah.png',
+      'default': 'assets/default.png'
+    };
+
+    function getMatchingImage(summary = '', description = '') {
+      const text = `${summary} ${description}`.toLowerCase();
+      for (const keyword in imageMap) {
+        if (keyword !== 'default' && text.includes(keyword.toLowerCase())) {
+          return imageMap[keyword];
+        }
+      }
+      return imageMap['default'];
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+    const apiURL = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${startOfMonth}&timeMax=${endOfMonth}&singleEvents=true&orderBy=startTime`;
+
+    fetch(apiURL)
+      .then(response => response.json())
+      .then(data => {
+        const events = data.items;
+        const container = document.getElementById('event-list');
+
+        if (!events || events.length === 0) {
+          container.innerHTML = '<p>No events this month.</p>';
+          return;
+        }
+        let html = '<ul style="list-style-type: none; padding-left: 0;">';
+        events.forEach(event => {
+          const start = event.start.dateTime || event.start.date;
+          const date = new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+          const summary = event.summary || '';
+          const description = event.description || '';
+          const imageURL = getMatchingImage(summary, description);
+
+          html += `
+            <li style="margin-bottom: 40px; text-align: center;">
+              <div style="margin-bottom: 15px;">
+                <img src="${imageURL}" alt="${summary}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+              </div>
+              <div style="text-align: left; max-width: 600px; margin: 0 auto;">
+                <div style="font-size: 24px; font-weight: bold; margin-bottom: 6px;">
+                ${date} — ${summary}</div>
+                <p style="margin-top: 18px;">${description}</p>
+              </div>
+            </li>`;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+      })
+      .catch(error => {
+        console.error('Error fetching events:', error);
+        document.getElementById('event-list').innerHTML = '<p>Error loading events.</p>';
+      });
+  </script>
+</body>
+</html>
