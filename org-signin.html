@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Organization Signin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main style="max-width:400px;margin:3em auto;padding:2em 1em;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <div id="password-section">
+      <h2>Organization Signin</h2>
+      <form id="password-form" autocomplete="off">
+        <label for="org-password">Enter password:</label><br>
+        <input type="password" id="org-password" name="org-password" style="margin-top:0.5em;width:100%;padding:0.5em;"><br>
+        <button type="submit" class="btn" style="margin-top:1em;">Continue</button>
+        <div id="password-error" style="color:#b00020;margin-top:1em;display:none;">Incorrect password. Please try again.</div>
+      </form>
+    </div>
+    <div id="org-form-section" style="display:none;">
+      <h2>Organization Form</h2>
+      <form id="org-form">
+        <label for="org-dropdown">Select an organization:</label><br>
+        <select id="org-dropdown" name="org-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
+          <option value="">-- Choose --</option>
+          <option value="Indivisible">Indivisible</option>
+          <option value="Bakers for Palestine">Bakers for Palestine</option>
+          <option value="DSA">DSA</option>
+          <option value="SLC Mutual Aid">SLC Mutual Aid</option>
+        </select><br><br>
+
+        <label>Volunteer Opportunities:</label><br>
+        <div id="opportunity-checkboxes" style="margin-bottom:1em;">
+          <label><input type="checkbox" name="opportunities" value="Bake Sale"> Bake Sale</label><br>
+          <label><input type="checkbox" name="opportunities" value="Protest Set up/ Teardown"> Protest Set up/ Teardown</label><br>
+          <label><input type="checkbox" name="opportunities" value="Graphic Design"> Graphic Design</label><br>
+          <label><input type="checkbox" name="opportunities" value="Social Media Boosting"> Social Media Boosting</label><br>
+          <label><input type="checkbox" name="opportunities" value="Letter Writing"> Letter Writing</label><br>
+          <label><input type="checkbox" name="opportunities" value="Food Drive"> Food Drive</label><br>
+          <label><input type="checkbox" name="opportunities" value="Flyering"> Flyering</label><br>
+          <label><input type="checkbox" name="opportunities" value="First Aid"> First Aid</label><br>
+          <label><input type="checkbox" name="opportunities" value="Crowd Control"> Crowd Control</label><br>
+          <label><input type="checkbox" name="opportunities" value="Speaking"> Speaking</label><br>
+          <label><input type="checkbox" name="opportunities" value="Info Booth Attendant"> Info Booth Attendant</label><br>
+          <label><input type="checkbox" name="opportunities" value="Screen Printing"> Screen Printing</label><br>
+          <button type="button" id="add-new-opportunity" style="margin:1em 0 0 0;padding:0.4em 1em;display:block;text-align:left;">Add New</button>
+          <div id="new-opportunity-container" style="display:none; margin:1em 0;">
+            <input type="text" id="new-opportunity-input" placeholder="Enter new opportunity" style="width:70%;padding:0.4em;">
+            <button type="button" id="save-new-opportunity">Save</button>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <button type="submit" class="btn" style="margin-top:1em;">Submit</button>
+        </div>
+      </form>
+    </div>
+  </main>
+  <script>
+    // Password protection logic
+    //const PASSWORD = "****************************";
+    const passwordForm = document.getElementById('password-form');
+    const passwordInput = document.getElementById('org-password');
+    const passwordError = document.getElementById('password-error');
+    const passwordSection = document.getElementById('password-section');
+    const orgFormSection = document.getElementById('org-form-section');
+    const orgForm = document.getElementById('org-form');
+
+    passwordForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (passwordInput.value === PASSWORD) {
+        passwordSection.style.display = 'none';
+        orgFormSection.style.display = 'block';
+        passwordInput.value = '';
+        passwordError.style.display = 'none';
+      } else {
+        passwordError.style.display = 'block';
+        passwordInput.value = '';
+      }
+    });
+
+    orgForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const orgDropdown = document.getElementById('org-dropdown');
+      if (!orgDropdown.value) {
+        alert('Please select an organization before submitting.');
+        orgDropdown.focus();
+        return;
+      }
+      // "Sign out" and redirect
+      passwordSection.style.display = 'block';
+      orgFormSection.style.display = 'none';
+      window.location.href = "volunteer.html";
+    });
+
+    // Add new opportunity logic
+    document.getElementById('add-new-opportunity').addEventListener('click', function() {
+      document.getElementById('new-opportunity-container').style.display = 'block';
+      document.getElementById('new-opportunity-input').focus();
+    });
+
+    document.getElementById('save-new-opportunity').addEventListener('click', function() {
+      const val = document.getElementById('new-opportunity-input').value.trim();
+      if (val) {
+        // Find the add new button to insert before
+        const container = document.getElementById('opportunity-checkboxes');
+        const addNewBtn = document.getElementById('add-new-opportunity');
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
+        // Insert the new checkbox
+        container.insertBefore(label, addNewBtn);
+        container.insertBefore(document.createElement('br'), addNewBtn);
+        document.getElementById('new-opportunity-input').value = '';
+        document.getElementById('new-opportunity-container').style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

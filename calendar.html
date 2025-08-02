@@ -9,33 +9,51 @@
   <nav>
     <a href="index.html">Home</a> |
     <a href="calendar.html">Event Calendar</a> |
-    <a href="volunteer.html">Volunteering</a>
+    <a href="volunteer.html">Volunteering</a> |
+    <a href="support.html">Support a Cause</a> |
+    <a href="latest-updates.html">Latest Updates</a> |
+    <a href="activism.html">Activism</a> 
   </nav>
   <main>
     <h1>Event Calendar</h1>
     <!-- Embedded Google Calendar -->
-    <iframe 
-      src="https://calendar.google.com/calendar/*************************************.calendar.google.com&ctz=UTC"
-      style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
-
+    <div class="calendar-iframe-wrapper">
+      <iframe 
+        src="https://calendar.google.com/calendar/embed?src=889b58a5eb5476990c478facc6e406cf64ca2d7ff73473cfa4b24f435b895d00%40group.calendar.google.com&ctz=UTC"
+        style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>
+    </div>
+    <div style="text-align:left; margin: 1.5em 0 0.5em 0;">
+      <a href="#" id="calendar-disclaimer-link" style="font-size:0.92em;text-decoration:underline;cursor:pointer;">Disclaimer</a>
+    </div>
+    <!-- Month Navigation -->
+    <div id="month-navigation" style="margin: 2em 0; text-align: left; max-width: 700px;">
+      <button id="prev-month" style="margin-right:1em;">&#8592; Previous Month</button>
+      <span id="current-month-label" style="font-weight:bold;"></span>
+      <button id="next-month" style="margin-left:1em;">Next Month &#8594;</button>
+    </div>
     <!-- Event Feed -->
     <div id="event-feed" style="margin-top: 20px;">
       <h2>This Month’s Events</h2>
       <div id="event-list">Loading events...</div>
     </div>
   </main>
-  
-  <script>
-    const calendarId = '8*******************************************d00@group.calendar.google.com';
-    const apiKey = '*********************************************';
 
-    // Map keywords to local assets folder PNG files
+  <div id="calendar-disclaimer-popover" style="display:none;position:fixed;top:22%;left:50%;transform:translate(-50%,0);background:#fff;border:1px solid #888;box-shadow:0 4px 24px rgba(0,0,0,0.18);padding:2em;max-width:520px;z-index:1000;border-radius:8px;font-size:0.97em; text-align:left;">
+    <strong>Disclaimer:</strong> Connect Utah Today provides a list of events for informational purposes only. We do not organize, operate, or officially endorse any of the events listed on this website unless explicitly stated. Event details, dates, times, and locations are subject to change without notice. Connect Utah Today is not responsible for the accuracy, reliability, or completeness of the information provided, nor for any issues, injuries, or losses that may arise from your participation in any event. Please verify event details directly with the event organizer before attending. By using this website, you acknowledge and accept that Connect Utah Today is not liable for any consequences resulting from your participation in or reliance on any event listed.
+    <br><br>
+    <button id="close-calendar-disclaimer" style="margin-top:1em;padding:0.5em 1.5em;">Close</button>
+  </div>
+  <script>
+    // --- Month Navigation Logic ---
+    const calendarId = '889b58a5eb5476990c478facc6e406cf64ca2d7ff73473cfa4b24f435b895d00@group.calendar.google.com';
+    //const apiKey = '********************************************'; 
+
     const imageMap = {
-      'SCLMutualAid': 'assets/SCLMutualAid.png',
-      'CUT': 'assets/CUT.png',
-      'BrownBerets': 'assets/BrownBerets.png',
-      'WildUtah': 'assets/WildUtah.png',
-      'default': 'assets/default.png'
+      'SLC Mutual Aid': 'assets/SLCMutualAid.png',
+      'Brown Berets': 'assets/BrownBerets.png',
+      'Wild Utah': 'assets/WildUtah.png',
+      'Bakers for Palestine': 'assets/bakers_for_palestine_SLC.jpg',
+      'default': 'assets/placeholder.jpg'
     };
 
     function getMatchingImage(summary = '', description = '') {
@@ -48,49 +66,107 @@
       return imageMap['default'];
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+    let monthOffset = 0; // 0 = current month, -1 = previous, +1 = next, etc.
 
-    const apiURL = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${startOfMonth}&timeMax=${endOfMonth}&singleEvents=true&orderBy=startTime`;
+    function getMonthRange(offset) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + offset;
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0, 23, 59, 59);
+      return {
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+        label: start.toLocaleString(undefined, { month: 'long', year: 'numeric' })
+      };
+    }
 
-    fetch(apiURL)
-      .then(response => response.json())
-      .then(data => {
-        const events = data.items;
-        const container = document.getElementById('event-list');
+    function updateMonthLabel(offset) {
+      const range = getMonthRange(offset);
+      document.getElementById('current-month-label').textContent = range.label;
+    }
 
-        if (!events || events.length === 0) {
-          container.innerHTML = '<p>No events this month.</p>';
-          return;
-        }
-        let html = '<ul style="list-style-type: none; padding-left: 0;">';
-        events.forEach(event => {
-          const start = event.start.dateTime || event.start.date;
-          const date = new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-          const summary = event.summary || '';
-          const description = event.description || '';
-          const imageURL = getMatchingImage(summary, description);
-
-          html += `
-            <li style="margin-bottom: 40px; text-align: center;">
-              <div style="margin-bottom: 15px;">
-                <img src="${imageURL}" alt="${summary}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-              </div>
-              <div style="text-align: left; max-width: 600px; margin: 0 auto;">
-                <div style="font-size: 24px; font-weight: bold; margin-bottom: 6px;">
-                ${date} — ${summary}</div>
-                <p style="margin-top: 18px;">${description}</p>
-              </div>
-            </li>`;
+    function fetchEventsForMonth(offset) {
+      const range = getMonthRange(offset);
+      const apiURL = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${range.startISO}&timeMax=${range.endISO}&singleEvents=true&orderBy=startTime`;
+      document.getElementById('event-list').innerHTML = 'Loading events...';
+      fetch(apiURL)
+        .then(response => response.json())
+        .then(data => {
+          allEvents = data.items || [];
+          renderEvents(allEvents);
+        })
+        .catch(error => {
+          console.error('Error fetching events:', error);
+          document.getElementById('event-list').innerHTML = '<p>Error loading events.</p>';
         });
-        html += '</ul>';
-        container.innerHTML = html;
-      })
-      .catch(error => {
-        console.error('Error fetching events:', error);
-        document.getElementById('event-list').innerHTML = '<p>Error loading events.</p>';
+      updateMonthLabel(offset);
+    }
+
+    let allEvents = [];
+
+    // Initial fetch
+    fetchEventsForMonth(monthOffset);
+
+    // Render events to the page
+    function renderEvents(events) {
+      const container = document.getElementById('event-list');
+      if (!events || events.length === 0) {
+        container.innerHTML = '<p>No events found for this month.</p>';
+        return;
+      }
+      let html = '<ul style="list-style-type: none; padding-left: 0;">';
+      events.forEach(event => {
+        const start = event.start.dateTime || event.start.date;
+        const date = new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        const summary = event.summary || '';
+        const description = event.description || '';
+        const imageURL = getMatchingImage(summary, description);
+
+        let eventContent = `<p style="margin-top: 18px;">${description}</p>`;
+
+        html += `
+          <li style="margin-bottom: 40px; text-align: center;">
+            <div style="margin-bottom: 15px;">
+              <img src="${imageURL}" alt="${summary}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            </div>
+            <div style="text-align: left; max-width: 600px; margin: 0 auto;">
+              <div style="font-size: 24px; font-weight: bold; margin-bottom: 6px;">
+              ${date} — ${summary}</div>
+              ${eventContent}
+            </div>
+          </li>`;
       });
+      html += '</ul>';
+      container.innerHTML = html;
+    }
+
+    document.getElementById('prev-month').addEventListener('click', function() {
+      monthOffset--;
+      fetchEventsForMonth(monthOffset);
+    });
+
+    document.getElementById('next-month').addEventListener('click', function() {
+      monthOffset++;
+      fetchEventsForMonth(monthOffset);
+    });
+
+    // Disclaimer popover logic
+    const calDisclaimerLink = document.getElementById('calendar-disclaimer-link');
+    const calDisclaimerPopover = document.getElementById('calendar-disclaimer-popover');
+    const closeCalDisclaimer = document.getElementById('close-calendar-disclaimer');
+    calDisclaimerLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      calDisclaimerPopover.style.display = 'block';
+    });
+    closeCalDisclaimer.addEventListener('click', function() {
+      calDisclaimerPopover.style.display = 'none';
+    });
+    window.addEventListener('click', function(e) {
+      if (calDisclaimerPopover.style.display === 'block' && !calDisclaimerPopover.contains(e.target) && e.target !== calDisclaimerLink) {
+        calDisclaimerPopover.style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
