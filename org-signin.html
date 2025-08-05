@@ -55,62 +55,107 @@
     </div>
   </main>
   <script>
-    // Password protection logic
-    //const PASSWORD = "****************************";
+    // Password protection logic using backend
     const passwordForm = document.getElementById('password-form');
     const passwordInput = document.getElementById('org-password');
     const passwordError = document.getElementById('password-error');
     const passwordSection = document.getElementById('password-section');
     const orgFormSection = document.getElementById('org-form-section');
     const orgForm = document.getElementById('org-form');
+    const orgDropdown = document.getElementById('org-dropdown');
+    const opportunityCheckboxes = document.getElementById('opportunity-checkboxes');
+    const addNewBtn = document.getElementById('add-new-opportunity');
+    const newOpportunityContainer = document.getElementById('new-opportunity-container');
+    const newOpportunityInput = document.getElementById('new-opportunity-input');
+    const saveNewOpportunityBtn = document.getElementById('save-new-opportunity');
 
+    // Password check via backend
     passwordForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      if (passwordInput.value === PASSWORD) {
-        passwordSection.style.display = 'none';
-        orgFormSection.style.display = 'block';
-        passwordInput.value = '';
-        passwordError.style.display = 'none';
-      } else {
+      fetch('/api/org-signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput.value })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          passwordSection.style.display = 'none';
+          orgFormSection.style.display = 'block';
+          passwordInput.value = '';
+          passwordError.style.display = 'none';
+        } else {
+          passwordError.style.display = 'block';
+          passwordInput.value = '';
+        }
+      })
+      .catch(() => {
         passwordError.style.display = 'block';
         passwordInput.value = '';
+      });
+    });
+
+    // Fetch opportunities for selected organization
+    orgDropdown.addEventListener('change', function() {
+      const org = this.value;
+      if (!org) return;
+      fetch(`/api/opportunities?organization=${encodeURIComponent(org)}`)
+        .then(res => res.json())
+        .then(data => {
+          opportunityCheckboxes.innerHTML = '';
+          (data.opportunities || []).forEach(op => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="opportunities" value="${op}"> ${op}`;
+            opportunityCheckboxes.appendChild(label);
+            opportunityCheckboxes.appendChild(document.createElement('br'));
+          });
+          // Add New button and input
+          opportunityCheckboxes.appendChild(addNewBtn);
+          opportunityCheckboxes.appendChild(newOpportunityContainer);
+        });
+    });
+
+    // Add new opportunity logic (send to backend)
+    addNewBtn.addEventListener('click', function() {
+      newOpportunityContainer.style.display = 'block';
+      newOpportunityInput.focus();
+    });
+
+    saveNewOpportunityBtn.addEventListener('click', function() {
+      const val = newOpportunityInput.value.trim();
+      const org = orgDropdown.value;
+      if (val && org) {
+        fetch('/api/opportunities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organization: org, opportunity: val })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Add to list
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
+            opportunityCheckboxes.insertBefore(label, addNewBtn);
+            opportunityCheckboxes.insertBefore(document.createElement('br'), addNewBtn);
+            newOpportunityInput.value = '';
+            newOpportunityContainer.style.display = 'none';
+          }
+        });
       }
     });
 
     orgForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      const orgDropdown = document.getElementById('org-dropdown');
       if (!orgDropdown.value) {
         alert('Please select an organization before submitting.');
         orgDropdown.focus();
         return;
       }
-      // "Sign out" and redirect
+      // You can POST the selected opportunities to your backend here if needed
       passwordSection.style.display = 'block';
       orgFormSection.style.display = 'none';
       window.location.href = "volunteer.html";
-    });
-
-    // Add new opportunity logic
-    document.getElementById('add-new-opportunity').addEventListener('click', function() {
-      document.getElementById('new-opportunity-container').style.display = 'block';
-      document.getElementById('new-opportunity-input').focus();
-    });
-
-    document.getElementById('save-new-opportunity').addEventListener('click', function() {
-      const val = document.getElementById('new-opportunity-input').value.trim();
-      if (val) {
-        // Find the add new button to insert before
-        const container = document.getElementById('opportunity-checkboxes');
-        const addNewBtn = document.getElementById('add-new-opportunity');
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
-        // Insert the new checkbox
-        container.insertBefore(label, addNewBtn);
-        container.insertBefore(document.createElement('br'), addNewBtn);
-        document.getElementById('new-opportunity-input').value = '';
-        document.getElementById('new-opportunity-container').style.display = 'none';
-      }
     });
   </script>
 </body>

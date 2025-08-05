@@ -88,13 +88,15 @@
 
     function fetchEventsForMonth(offset) {
       const range = getMonthRange(offset);
-      const apiURL = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&timeMin=${range.startISO}&timeMax=${range.endISO}&singleEvents=true&orderBy=startTime`;
+      // Update: fetch events from your backend, not Google directly
+      const apiURL = `/api/calendar?timeMin=${range.startISO}&timeMax=${range.endISO}`;
       document.getElementById('event-list').innerHTML = 'Loading events...';
       fetch(apiURL)
         .then(response => response.json())
         .then(data => {
-          allEvents = data.items || [];
-          renderEvents(allEvents);
+          // Google Calendar API returns events in data.items
+          const events = data.items || [];
+          renderEvents(events);
         })
         .catch(error => {
           console.error('Error fetching events:', error);
@@ -103,12 +105,6 @@
       updateMonthLabel(offset);
     }
 
-    let allEvents = [];
-
-    // Initial fetch
-    fetchEventsForMonth(monthOffset);
-
-    // Render events to the page
     function renderEvents(events) {
       const container = document.getElementById('event-list');
       if (!events || events.length === 0) {
@@ -121,21 +117,12 @@
         const date = new Date(start).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
         const summary = event.summary || '';
         const description = event.description || '';
-        const imageURL = getMatchingImage(summary, description);
-
-        let eventContent = `<p style="margin-top: 18px;">${description}</p>`;
-
         html += `
-          <li style="margin-bottom: 40px; text-align: center;">
-            <div style="margin-bottom: 15px;">
-              <img src="${imageURL}" alt="${summary}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            </div>
-            <div style="text-align: left; max-width: 600px; margin: 0 auto;">
-              <div style="font-size: 24px; font-weight: bold; margin-bottom: 6px;">
-              ${date} — ${summary}</div>
-              ${eventContent}
-            </div>
-          </li>`;
+          <li style="margin-bottom: 40px;">
+            <div style="font-size: 1.2em; font-weight: bold;">${date} — ${summary}</div>
+            <div>${description}</div>
+          </li>
+        `;
       });
       html += '</ul>';
       container.innerHTML = html;
@@ -166,6 +153,11 @@
       if (calDisclaimerPopover.style.display === 'block' && !calDisclaimerPopover.contains(e.target) && e.target !== calDisclaimerLink) {
         calDisclaimerPopover.style.display = 'none';
       }
+    });
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', function() {
+      fetchEventsForMonth(monthOffset);
     });
   </script>
 </body>
