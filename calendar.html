@@ -88,8 +88,8 @@
 
     function fetchEventsForMonth(offset) {
       const range = getMonthRange(offset);
-      // Update: fetch events from your backend, not Google directly
-      const apiURL = `/api/calendar?timeMin=${range.startISO}&timeMax=${range.endISO}`;
+      // Use the full Render backend URL for API requests
+      const apiURL = `https://connectutahtoday-1.onrender.com/api/calendar?timeMin=${range.startISO}&timeMax=${range.endISO}`;
       document.getElementById('event-list').innerHTML = 'Loading events...';
       fetch(apiURL)
         .then(response => response.json())
