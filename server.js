@@ -10,11 +10,6 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
-const cors = require('cors');
-app.use(cors({
-  origin: '*'
-}));
-
 // Health check endpoint
 app.get('/', (req, res) => {
   res.send('ConnectUtahToday API is running.');
