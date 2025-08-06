@@ -128,17 +128,3 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-fetch('/api/org-signin', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ password: passwordInput.value })
-})
-.then(res => res.json())
-.then(data => {
-  if (data.success) {
-    // Show org form
-  } else {
-    // Show error
-  }
-});
