@@ -3,11 +3,17 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 const app = express();
 
 app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
+
+const cors = require('cors');
+app.use(cors({
+  origin: '*'
+}));
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -26,12 +32,24 @@ pool.on('error', (err) => {
 });
 
 // API to verify org-signin password
-app.post('/api/org-signin', (req, res) => {
+app.post('/api/org-signin', async (req, res) => {
   const { password } = req.body;
-  if (password === process.env.ORG_SIGNIN_PASSWORD) {
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ success: false, message: 'Incorrect password' });
+  try {
+    // Fetch hashed password from your password table
+    const result = await pool.query('SELECT password_hash FROM password LIMIT 1');
+    if (result.rows.length === 0) {
+      return res.status(500).json({ success: false, message: 'No password set' });
+    }
+    const hashedPassword = result.rows[0].password_hash;
+    const match = await bcrypt.compare(password, hashedPassword);
+    if (match) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+  } catch (error) {
+    console.error('Error verifying password:', error.stack || error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -91,7 +109,19 @@ app.get('/api/calendar', async (req, res) => {
     });
     res.json(response.data);
   } catch (error) {
-    console.error('Error fetching calendar events:', error?.response?.data || error.stack || error.message);
+    // More detailed error logging
+    if (error.response) {
+      console.error('Error fetching calendar events:');
+      console.error('Status:', error.response.status);
+      console.error('Headers:', error.response.headers);
+      console.error('Data:', error.response.data);
+    } else if (error.request) {
+      console.error('No response received from Google Calendar API.');
+      console.error('Request:', error.request);
+    } else {
+      console.error('Error setting up request to Google Calendar API:', error.message);
+    }
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Failed to fetch events' });
   }
 });
@@ -103,3 +133,17 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+fetch('/api/org-signin', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ password: passwordInput.value })
+})
+.then(res => res.json())
+.then(data => {
+  if (data.success) {
+    // Show org form
+  } else {
+    // Show error
+  }
+});
