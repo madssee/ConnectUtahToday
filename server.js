@@ -54,7 +54,7 @@ app.get('/api/opportunities', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT opportunity FROM opportunities WHERE organization = $1',
-      [organization]
+      [organization_id]
     );
     res.json({ opportunities: result.rows.map(row => row.opportunity) });
   } catch (error) {
@@ -65,7 +65,7 @@ app.get('/api/opportunities', async (req, res) => {
 
 // API to add a new opportunity for an organization
 app.post('/api/opportunities', async (req, res) => {
-  const { organization, opportunity } = req.body;
+  const { organization_id, opportunity } = req.body;
   try {
     await pool.query(
       'INSERT INTO opportunities (organization, opportunity) VALUES ($1, $2)',
@@ -118,6 +118,21 @@ app.get('/api/calendar', async (req, res) => {
     }
     console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// API to add a new organization
+app.post('/api/organizations', async (req, res) => {
+  const { name } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
+      [name]
+    );
+    res.json({ id: result.rows[0].id });
+  } catch (error) {
+    console.error('Error adding organization:', error.stack || error);
+    res.status(500).json({ error: 'Could not add organization' });
   }
 });
 
