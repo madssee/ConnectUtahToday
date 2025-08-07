@@ -2,163 +2,264 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Organization Signin Minimal Demo</title>
-  <style>
-    body { font-family: sans-serif; background: #f4f4f4; }
-    main { max-width: 400px; margin: 3em auto; padding: 2em 1em; background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    .btn { margin-top: 1em; padding: 0.5em 1.2em; }
-    #org-form-section { display: none; }
-    #add-org-section { display: none; margin-bottom: 1em; }
-    #add-opportunity-container { display: none; margin: 1em 0; }
-    #password-error { color: #b00020; margin-top: 1em; display: none; }
-    #add-opportunity-message { color: #b00020; margin-top: 0.5em; display: none; }
-  </style>
+  <title>Organization Signin</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
+  <main style="max-width:400px;margin:3em auto;padding:2em 1em;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
     <div id="password-section">
       <h2>Organization Signin</h2>
       <form id="password-form" autocomplete="off">
-        <input type="password" id="org-password" placeholder="Enter password" style="width:100%;padding:0.5em;"><br>
-        <button type="submit" class="btn">Continue</button>
-        <div id="password-error">Incorrect password. Please try again.</div>
+        <label for="org-password">Enter password:</label><br>
+        <input type="password" id="org-password" name="org-password" style="margin-top:0.5em;width:100%;padding:0.5em;"><br>
+        <button type="submit" class="btn" style="margin-top:1em;">Continue</button>
+        <div id="password-error" style="color:#b00020;margin-top:1em;display:none;">Incorrect password. Please try again.</div>
       </form>
     </div>
-    <div id="org-form-section">
+    <div id="org-form-section" style="display:none;">
       <h2>Organization Form</h2>
       <form id="org-form">
-        <select id="org-dropdown" style="width:100%;padding:0.5em;margin-bottom:1em;">
+        <label for="org-dropdown">Select an organization:</label><br>
+        <select id="org-dropdown" name="org-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
           <option value="">-- Choose --</option>
           <option value="Indivisible">Indivisible</option>
           <option value="Bakers for Palestine">Bakers for Palestine</option>
           <option value="DSA">DSA</option>
           <option value="SLC Mutual Aid">SLC Mutual Aid</option>
           <option value="__add_new__">+ Add New Organization</option>
-        </select><br>
-        <div id="add-org-section">
+        </select><br><br>
+
+        <!-- Add New Organization UI (hidden by default) -->
+        <div id="add-org-section" style="display:none; margin-bottom:1em;">
+          <label for="new-org-input">Add a new organization:</label><br>
           <input type="text" id="new-org-input" placeholder="Organization name" style="width:70%;padding:0.4em;">
-          <button type="button" id="add-org-btn">Add</button>
+          <button type="button" id="add-org-btn">Add Organization</button>
           <div id="add-org-message" style="color:#b00020;margin-top:0.5em;display:none;"></div>
         </div>
-        <div id="opportunities"></div>
-        <button type="button" id="add-opportunity-btn" class="btn" style="background:#eee;color:#333;margin-bottom:0.5em;">Add New Opportunity</button>
-        <div id="add-opportunity-container">
-          <input type="text" id="new-opportunity-input" placeholder="Opportunity name" style="width:70%;padding:0.4em;">
-          <button type="button" id="save-opportunity-btn">Save</button>
-          <div id="add-opportunity-message"></div>
+
+        <label>Volunteer Opportunities:</label><br>
+        <div id="opportunity-checkboxes" style="margin-bottom:1em;">
+          <!-- Default checkboxes will be inserted here -->
         </div>
-        <button type="submit" class="btn">Submit</button>
+        <button type="button" id="add-new-opportunity" style="margin:1em 0 0 0;padding:0.4em 1em;display:block;text-align:left;">Add New</button>
+        <div id="new-opportunity-container" style="display:none; margin:1em 0;">
+          <input type="text" id="new-opportunity-input" placeholder="Enter new opportunity" style="width:70%;padding:0.4em;">
+          <button type="button" id="save-new-opportunity">Save</button>
+        </div>
+        <div style="text-align:center;">
+          <button type="submit" class="btn" style="margin-top:1em;">Submit</button>
+        </div>
       </form>
     </div>
   </main>
   <script>
-    // Minimal password logic: demo password is "pass"
+    // Default orgs and default opportunities (shown at load)
+    const defaultOrgs = [
+      "Indivisible",
+      "Bakers for Palestine",
+      "DSA",
+      "SLC Mutual Aid"
+    ];
+    const defaultOpportunities = [
+      "Bake Sale",
+      "Protest Set up/ Teardown",
+      "Graphic Design",
+      "Social Media Boosting",
+      "Letter Writing",
+      "Food Drive",
+      "Flyering",
+      "First Aid",
+      "Crowd Control",
+      "Speaking",
+      "Info Booth Attendant",
+      "Screen Printing"
+    ];
+
+    // DOM elements
     const passwordForm = document.getElementById('password-form');
     const passwordInput = document.getElementById('org-password');
     const passwordError = document.getElementById('password-error');
     const passwordSection = document.getElementById('password-section');
     const orgFormSection = document.getElementById('org-form-section');
-
-    passwordForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if(passwordInput.value === "pass") {
-        passwordSection.style.display = 'none';
-        orgFormSection.style.display = 'block';
-        passwordError.style.display = 'none';
-        passwordInput.value = '';
-      } else {
-        passwordError.style.display = 'block';
-        passwordInput.value = '';
-      }
-    });
-
-    // Minimal orgs and opportunities logic
+    const orgForm = document.getElementById('org-form');
     const orgDropdown = document.getElementById('org-dropdown');
-    const addOrgSection = document.getElementById('add-org-section');
+    const opportunityCheckboxes = document.getElementById('opportunity-checkboxes');
+    const addNewBtn = document.getElementById('add-new-opportunity');
+    const newOpportunityContainer = document.getElementById('new-opportunity-container');
+    const newOpportunityInput = document.getElementById('new-opportunity-input');
+    const saveNewOpportunityBtn = document.getElementById('save-new-opportunity');
     const addOrgBtn = document.getElementById('add-org-btn');
     const newOrgInput = document.getElementById('new-org-input');
     const addOrgMessage = document.getElementById('add-org-message');
-    const opportunitiesDiv = document.getElementById('opportunities');
-    const addOpportunityBtn = document.getElementById('add-opportunity-btn');
-    const addOpportunityContainer = document.getElementById('add-opportunity-container');
-    const newOpportunityInput = document.getElementById('new-opportunity-input');
-    const saveOpportunityBtn = document.getElementById('save-opportunity-btn');
-    const addOpportunityMessage = document.getElementById('add-opportunity-message');
+    const addOrgSection = document.getElementById('add-org-section');
 
-    let currentOpportunities = [
-      "Bake Sale","Protest Set up/ Teardown","Graphic Design","Social Media Boosting",
-      "Letter Writing","Food Drive","Flyering","First Aid","Crowd Control","Speaking",
-      "Info Booth Attendant","Screen Printing"
-    ];
+    // Keep track of opportunities currently displayed (for adding new)
+    let currentOpportunities = [...defaultOpportunities];
 
-    function renderOpportunities(ops) {
-      opportunitiesDiv.innerHTML = ops.map(op =>
-        `<label><input type="checkbox" name="opportunities" value="${op}"> ${op}</label><br>`
-      ).join("");
+    // Render the opportunities list
+    function renderOpportunities() {
+      opportunityCheckboxes.innerHTML = '';
+      currentOpportunities.forEach(op => {
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" name="opportunities" value="${op}"> ${op}`;
+        opportunityCheckboxes.appendChild(label);
+        opportunityCheckboxes.appendChild(document.createElement('br'));
+      });
     }
-    renderOpportunities(currentOpportunities);
+    renderOpportunities();
 
+    // Password check via backend
+    passwordForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      fetch('/api/org-signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput.value })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          passwordSection.style.display = 'none';
+          orgFormSection.style.display = 'block';
+          passwordInput.value = '';
+          passwordError.style.display = 'none';
+        } else {
+          passwordError.style.display = 'block';
+          passwordInput.value = '';
+        }
+      })
+      .catch(() => {
+        passwordError.style.display = 'block';
+        passwordInput.value = '';
+      });
+    });
+
+    // Fetch opportunities for selected organization
     orgDropdown.addEventListener('change', function() {
-      if(this.value === "__add_new__") {
-        addOrgSection.style.display = "block";
+      const org = this.value;
+      if (org === "__add_new__") {
+        addOrgSection.style.display = 'block';
+        // Show default opportunities and enable add new
+        currentOpportunities = [...defaultOpportunities];
+        renderOpportunities();
+        opportunityCheckboxes.style.display = '';
+      } else if (org) {
+        addOrgSection.style.display = 'none';
+        opportunityCheckboxes.style.display = '';
+        fetch(`/api/opportunities?organization=${encodeURIComponent(org)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.opportunities && data.opportunities.length > 0) {
+              currentOpportunities = [...data.opportunities];
+            } else {
+              currentOpportunities = [...defaultOpportunities];
+            }
+            renderOpportunities();
+          }).catch(() => {
+            currentOpportunities = [...defaultOpportunities];
+            renderOpportunities();
+          });
       } else {
-        addOrgSection.style.display = "none";
-        renderOpportunities(currentOpportunities);
+        addOrgSection.style.display = 'none';
+        opportunityCheckboxes.style.display = '';
+        currentOpportunities = [...defaultOpportunities];
+        renderOpportunities();
       }
     });
 
-    addOrgBtn.addEventListener('click', function() {
+    // Show add new org UI
+    addOrgBtn?.addEventListener('click', function() {
       const name = newOrgInput.value.trim();
-      if(!name) {
+      if (!name) {
         addOrgMessage.textContent = "Organization name required.";
-        addOrgMessage.style.display = "block";
+        addOrgMessage.style.display = 'block';
         return;
       }
-      addOrgMessage.style.display = "none";
-      // Insert new org before "+ Add New Organization"
-      const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = name;
-      orgDropdown.insertBefore(option, addNewOption);
-      orgDropdown.value = name;
-      addOrgSection.style.display = "none";
-      newOrgInput.value = '';
-      renderOpportunities(currentOpportunities);
+      fetch('/api/organizations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.id) {
+          // Insert new org above add new
+          const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          orgDropdown.insertBefore(option, addNewOption);
+          orgDropdown.value = name;
+          addOrgMessage.style.display = 'none';
+          newOrgInput.value = '';
+          addOrgSection.style.display = 'none';
+          opportunityCheckboxes.style.display = '';
+          currentOpportunities = [...defaultOpportunities];
+          renderOpportunities();
+        } else {
+          addOrgMessage.textContent = data.error || "Could not add organization.";
+          addOrgMessage.style.display = 'block';
+        }
+      })
+      .catch(() => {
+        addOrgMessage.textContent = "Could not add organization.";
+        addOrgMessage.style.display = 'block';
+      });
     });
 
-    // Add New Opportunity logic
-    addOpportunityBtn.addEventListener('click', function() {
-      addOpportunityContainer.style.display = "block";
-      newOpportunityInput.value = "";
-      addOpportunityMessage.style.display = "none";
+    // Show new opportunity input
+    addNewBtn.addEventListener('click', function() {
+      newOpportunityInput.value = '';
+      newOpportunityContainer.style.display = 'block';
       newOpportunityInput.focus();
     });
 
-    saveOpportunityBtn.addEventListener('click', function() {
+    // Save new opportunity logic
+    saveNewOpportunityBtn.addEventListener('click', function() {
       const val = newOpportunityInput.value.trim();
-      if(!val) {
-        addOpportunityMessage.textContent = "Opportunity name required.";
-        addOpportunityMessage.style.display = "block";
-        return;
-      }
+      const org = orgDropdown.value;
+      if (!val) return;
       // Prevent duplicates
-      if(currentOpportunities.includes(val)) {
-        addOpportunityMessage.textContent = "That opportunity already exists.";
-        addOpportunityMessage.style.display = "block";
+      if (currentOpportunities.includes(val)) {
+        newOpportunityInput.value = '';
+        newOpportunityContainer.style.display = 'none';
         return;
       }
-      addOpportunityMessage.style.display = "none";
-      currentOpportunities.push(val);
-      renderOpportunities(currentOpportunities);
-      addOpportunityContainer.style.display = "none";
-      newOpportunityInput.value = "";
+      if (org && org !== "__add_new__") {
+        fetch('/api/opportunities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organization: org, opportunity: val })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            currentOpportunities.push(val);
+            renderOpportunities();
+            newOpportunityInput.value = '';
+            newOpportunityContainer.style.display = 'none';
+          }
+        });
+      } else {
+        // For new org or default, just add locally
+        currentOpportunities.push(val);
+        renderOpportunities();
+        newOpportunityInput.value = '';
+        newOpportunityContainer.style.display = 'none';
+      }
     });
 
-    document.getElementById('org-form').addEventListener('submit', function(e) {
+    orgForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      alert("Submitted for org: " + orgDropdown.value);
-      location.reload();
+      if (!orgDropdown.value || orgDropdown.value === "__add_new__") {
+        alert('Please select an organization before submitting.');
+        orgDropdown.focus();
+        return;
+      }
+      // You can POST the selected opportunities to your backend here if needed
+      passwordSection.style.display = 'block';
+      orgFormSection.style.display = 'none';
+      window.location.href = "volunteer.html";
     });
   </script>
 </body>
