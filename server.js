@@ -48,12 +48,26 @@ app.post('/api/org-signin', async (req, res) => {
   }
 });
 
-// API to get volunteer opportunities for an organization
+// API to get all organizations
+app.get('/api/organizations', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, name FROM organizations ORDER BY name');
+    res.json({ organizations: result.rows });
+  } catch (error) {
+    console.error('Error fetching organizations:', error.stack || error);
+    res.status(500).json({ error: 'Could not fetch organizations' });
+  }
+});
+
+// API to get volunteer opportunities for an organization by organization_id
 app.get('/api/opportunities', async (req, res) => {
-  const { organization } = req.query;
+  const { organization_id } = req.query;
+  if (!organization_id) {
+    return res.status(400).json({ error: 'organization_id is required' });
+  }
   try {
     const result = await pool.query(
-      'SELECT opportunity FROM opportunities WHERE organization = $1',
+      'SELECT opportunity FROM opportunities WHERE organization_id = $1',
       [organization_id]
     );
     res.json({ opportunities: result.rows.map(row => row.opportunity) });
@@ -66,10 +80,13 @@ app.get('/api/opportunities', async (req, res) => {
 // API to add a new opportunity for an organization
 app.post('/api/opportunities', async (req, res) => {
   const { organization_id, opportunity } = req.body;
+  if (!organization_id || !opportunity) {
+    return res.status(400).json({ error: 'organization_id and opportunity are required' });
+  }
   try {
     await pool.query(
-      'INSERT INTO opportunities (organization, opportunity) VALUES ($1, $2)',
-      [organization, opportunity]
+      'INSERT INTO opportunities (organization_id, opportunity) VALUES ($1, $2)',
+      [organization_id, opportunity]
     );
     res.json({ success: true });
   } catch (error) {
@@ -124,6 +141,9 @@ app.get('/api/calendar', async (req, res) => {
 // API to add a new organization
 app.post('/api/organizations', async (req, res) => {
   const { name } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Organization name is required' });
+  }
   try {
     const result = await pool.query(
       'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
@@ -143,4 +163,3 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
