@@ -22,10 +22,7 @@
         <label for="org-dropdown">Select an organization:</label><br>
         <select id="org-dropdown" name="org-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
           <option value="">-- Choose --</option>
-          <option value="Indivisible">Indivisible</option>
-          <option value="Bakers for Palestine">Bakers for Palestine</option>
-          <option value="DSA">DSA</option>
-          <option value="SLC Mutual Aid">SLC Mutual Aid</option>
+          <!-- Organizations will be loaded dynamically -->
           <option value="__add_new__">+ Add New Organization</option>
         </select><br><br>
 
@@ -39,18 +36,7 @@
 
         <label>Volunteer Opportunities:</label><br>
         <div id="opportunity-checkboxes" style="margin-bottom:1em;">
-          <label><input type="checkbox" name="opportunities" value="Bake Sale"> Bake Sale</label><br>
-          <label><input type="checkbox" name="opportunities" value="Protest Set up/ Teardown"> Protest Set up/ Teardown</label><br>
-          <label><input type="checkbox" name="opportunities" value="Graphic Design"> Graphic Design</label><br>
-          <label><input type="checkbox" name="opportunities" value="Social Media Boosting"> Social Media Boosting</label><br>
-          <label><input type="checkbox" name="opportunities" value="Letter Writing"> Letter Writing</label><br>
-          <label><input type="checkbox" name="opportunities" value="Food Drive"> Food Drive</label><br>
-          <label><input type="checkbox" name="opportunities" value="Flyering"> Flyering</label><br>
-          <label><input type="checkbox" name="opportunities" value="First Aid"> First Aid</label><br>
-          <label><input type="checkbox" name="opportunities" value="Crowd Control"> Crowd Control</label><br>
-          <label><input type="checkbox" name="opportunities" value="Speaking"> Speaking</label><br>
-          <label><input type="checkbox" name="opportunities" value="Info Booth Attendant"> Info Booth Attendant</label><br>
-          <label><input type="checkbox" name="opportunities" value="Screen Printing"> Screen Printing</label><br>
+          <!-- Checkboxes will be loaded dynamically -->
           <button type="button" id="add-new-opportunity" style="margin:1em 0 0 0;padding:0.4em 1em;display:block;text-align:left;">Add New</button>
           <div id="new-opportunity-container" style="display:none; margin:1em 0;">
             <input type="text" id="new-opportunity-input" placeholder="Enter new opportunity" style="width:70%;padding:0.4em;">
@@ -64,7 +50,11 @@
     </div>
   </main>
   <script>
-    // Password protection logic using backend
+    // Store org ID map in memory
+    let orgMap = {}; // { name: id }
+    let idToNameMap = {}; // { id: name }
+
+    // DOM elements
     const passwordForm = document.getElementById('password-form');
     const passwordInput = document.getElementById('org-password');
     const passwordError = document.getElementById('password-error');
@@ -82,10 +72,40 @@
     const addOrgMessage = document.getElementById('add-org-message');
     const addOrgSection = document.getElementById('add-org-section');
 
+    // Load organizations from backend and populate dropdown
+    function loadOrganizations(selectedId = "") {
+      fetch('https://connectutahtoday-1.onrender.com/api/organizations')
+        .then(res => res.json())
+        .then(data => {
+          // Clear all except first and add_new options
+          orgDropdown.innerHTML = '<option value="">-- Choose --</option>';
+          orgMap = {};
+          idToNameMap = {};
+          (data.organizations || []).forEach(org => {
+            orgMap[org.name] = org.id;
+            idToNameMap[org.id] = org.name;
+            const option = document.createElement('option');
+            option.value = org.id;
+            option.textContent = org.name;
+            orgDropdown.insertBefore(option, orgDropdown.querySelector('option[value="__add_new__"]'));
+          });
+          // Add the "add new" option last if not present
+          if (!orgDropdown.querySelector('option[value="__add_new__"]')) {
+            const addNew = document.createElement('option');
+            addNew.value = "__add_new__";
+            addNew.textContent = "+ Add New Organization";
+            orgDropdown.appendChild(addNew);
+          }
+          if (selectedId) orgDropdown.value = selectedId;
+        });
+    }
+    // Initial organization load
+    loadOrganizations();
+
     // Password check via backend
     passwordForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      fetch('https://connectutahtoday-1.onrender.com/api/org-signin', { // Use full backend URL if frontend is on a different domain
+      fetch('https://connectutahtoday-1.onrender.com/api/org-signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: passwordInput.value })
@@ -110,14 +130,17 @@
 
     // Fetch opportunities for selected organization
     orgDropdown.addEventListener('change', function() {
-      const org = this.value;
-      if (org === "__add_new__") {
+      const orgId = this.value;
+      if (orgId === "__add_new__") {
         addOrgSection.style.display = 'block';
-      } else {
+        opportunityCheckboxes.style.display = 'none';
+      } else if (orgId) {
         addOrgSection.style.display = 'none';
-        fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization=${encodeURIComponent(org)}`)
+        opportunityCheckboxes.style.display = '';
+        fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization_id=${encodeURIComponent(orgId)}`)
           .then(res => res.json())
           .then(data => {
+            // Remove all children except add new button and new opportunity container
             opportunityCheckboxes.innerHTML = '';
             (data.opportunities || []).forEach(op => {
               const label = document.createElement('label');
@@ -125,12 +148,17 @@
               opportunityCheckboxes.appendChild(label);
               opportunityCheckboxes.appendChild(document.createElement('br'));
             });
-            // Add New button and input
+            // Re-add the Add New button and input
             opportunityCheckboxes.appendChild(addNewBtn);
             opportunityCheckboxes.appendChild(newOpportunityContainer);
           });
+      } else {
+        addOrgSection.style.display = 'none';
+        opportunityCheckboxes.style.display = '';
       }
     });
+
+    // Show new opportunity input
     addNewBtn.addEventListener('click', function() {
       newOpportunityInput.focus();
       opportunityCheckboxes.insertBefore(newOpportunityContainer, addNewBtn);
@@ -140,12 +168,12 @@
     // Save new opportunity logic
     saveNewOpportunityBtn.addEventListener('click', function() {
       const val = newOpportunityInput.value.trim();
-      const org = orgDropdown.value;
-      if (val && org && org !== "__add_new__") {
+      const orgId = orgDropdown.value;
+      if (val && orgId && orgId !== "__add_new__") {
         fetch('https://connectutahtoday-1.onrender.com/api/opportunities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organization: org, opportunity: val })
+          body: JSON.stringify({ organization_id: orgId, opportunity: val })
         })
         .then(res => res.json())
         .then(data => {
@@ -153,11 +181,8 @@
             // Create new opportunity checkbox
             const label = document.createElement('label');
             label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
-            
-            // Insert BEFORE the Add New button (at bottom of opportunities list)
             opportunityCheckboxes.insertBefore(label, addNewBtn);
             opportunityCheckboxes.insertBefore(document.createElement('br'), addNewBtn);
-            
             // Clear and hide input
             newOpportunityInput.value = '';
             newOpportunityContainer.style.display = 'none';
@@ -183,14 +208,11 @@
       .then(data => {
         if (data.id) {
           // Add new org to dropdown and select it
-          const option = document.createElement('option');
-          option.value = name;
-          option.textContent = name;
-          const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
-          orgDropdown.insertBefore(option, addNewOption);
-          orgDropdown.value = name;
+          loadOrganizations(data.id); // reload and select new org
           addOrgMessage.style.display = 'none';
           newOrgInput.value = '';
+          addOrgSection.style.display = 'none';
+          opportunityCheckboxes.style.display = '';
         } else {
           addOrgMessage.textContent = data.error || "Could not add organization.";
           addOrgMessage.style.display = 'block';
@@ -204,7 +226,7 @@
 
     orgForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      if (!orgDropdown.value) {
+      if (!orgDropdown.value || orgDropdown.value === "__add_new__") {
         alert('Please select an organization before submitting.');
         orgDropdown.focus();
         return;
