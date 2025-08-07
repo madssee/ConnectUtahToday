@@ -2,239 +2,163 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Organization Signin</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Organization Signin Minimal Demo</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; }
+    main { max-width: 400px; margin: 3em auto; padding: 2em 1em; background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .btn { margin-top: 1em; padding: 0.5em 1.2em; }
+    #org-form-section { display: none; }
+    #add-org-section { display: none; margin-bottom: 1em; }
+    #add-opportunity-container { display: none; margin: 1em 0; }
+    #password-error { color: #b00020; margin-top: 1em; display: none; }
+    #add-opportunity-message { color: #b00020; margin-top: 0.5em; display: none; }
+  </style>
 </head>
 <body>
-  <main style="max-width:400px;margin:3em auto;padding:2em 1em;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+  <main>
     <div id="password-section">
       <h2>Organization Signin</h2>
       <form id="password-form" autocomplete="off">
-        <label for="org-password">Enter password:</label><br>
-        <input type="password" id="org-password" name="org-password" style="margin-top:0.5em;width:100%;padding:0.5em;"><br>
-        <button type="submit" class="btn" style="margin-top:1em;">Continue</button>
-        <div id="password-error" style="color:#b00020;margin-top:1em;display:none;">Incorrect password. Please try again.</div>
+        <input type="password" id="org-password" placeholder="Enter password" style="width:100%;padding:0.5em;"><br>
+        <button type="submit" class="btn">Continue</button>
+        <div id="password-error">Incorrect password. Please try again.</div>
       </form>
     </div>
-    <div id="org-form-section" style="display:none;">
+    <div id="org-form-section">
       <h2>Organization Form</h2>
       <form id="org-form">
-        <label for="org-dropdown">Select an organization:</label><br>
-        <select id="org-dropdown" name="org-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
+        <select id="org-dropdown" style="width:100%;padding:0.5em;margin-bottom:1em;">
           <option value="">-- Choose --</option>
-          <!-- Organizations will be loaded dynamically -->
+          <option value="Indivisible">Indivisible</option>
+          <option value="Bakers for Palestine">Bakers for Palestine</option>
+          <option value="DSA">DSA</option>
+          <option value="SLC Mutual Aid">SLC Mutual Aid</option>
           <option value="__add_new__">+ Add New Organization</option>
-        </select><br><br>
-
-        <!-- Add New Organization UI (hidden by default) -->
-        <div id="add-org-section" style="display:none; margin-bottom:1em;">
-          <label for="new-org-input">Add a new organization:</label><br>
+        </select><br>
+        <div id="add-org-section">
           <input type="text" id="new-org-input" placeholder="Organization name" style="width:70%;padding:0.4em;">
-          <button type="button" id="add-org-btn">Add Organization</button>
+          <button type="button" id="add-org-btn">Add</button>
           <div id="add-org-message" style="color:#b00020;margin-top:0.5em;display:none;"></div>
         </div>
-
-        <label>Volunteer Opportunities:</label><br>
-        <div id="opportunity-checkboxes" style="margin-bottom:1em;">
-          <!-- Checkboxes will be loaded dynamically -->
-          <button type="button" id="add-new-opportunity" style="margin:1em 0 0 0;padding:0.4em 1em;display:block;text-align:left;">Add New</button>
-          <div id="new-opportunity-container" style="display:none; margin:1em 0;">
-            <input type="text" id="new-opportunity-input" placeholder="Enter new opportunity" style="width:70%;padding:0.4em;">
-            <button type="button" id="save-new-opportunity">Save</button>
-          </div>
+        <div id="opportunities"></div>
+        <button type="button" id="add-opportunity-btn" class="btn" style="background:#eee;color:#333;margin-bottom:0.5em;">Add New Opportunity</button>
+        <div id="add-opportunity-container">
+          <input type="text" id="new-opportunity-input" placeholder="Opportunity name" style="width:70%;padding:0.4em;">
+          <button type="button" id="save-opportunity-btn">Save</button>
+          <div id="add-opportunity-message"></div>
         </div>
-        <div style="text-align:center;">
-          <button type="submit" class="btn" style="margin-top:1em;">Submit</button>
-        </div>
+        <button type="submit" class="btn">Submit</button>
       </form>
     </div>
   </main>
   <script>
-    // Store org ID map in memory
-    let orgMap = {}; // { name: id }
-    let idToNameMap = {}; // { id: name }
-
-    // DOM elements
+    // Minimal password logic: demo password is "pass"
     const passwordForm = document.getElementById('password-form');
     const passwordInput = document.getElementById('org-password');
     const passwordError = document.getElementById('password-error');
     const passwordSection = document.getElementById('password-section');
     const orgFormSection = document.getElementById('org-form-section');
-    const orgForm = document.getElementById('org-form');
+
+    passwordForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if(passwordInput.value === "pass") {
+        passwordSection.style.display = 'none';
+        orgFormSection.style.display = 'block';
+        passwordError.style.display = 'none';
+        passwordInput.value = '';
+      } else {
+        passwordError.style.display = 'block';
+        passwordInput.value = '';
+      }
+    });
+
+    // Minimal orgs and opportunities logic
     const orgDropdown = document.getElementById('org-dropdown');
-    const opportunityCheckboxes = document.getElementById('opportunity-checkboxes');
-    const addNewBtn = document.getElementById('add-new-opportunity');
-    const newOpportunityContainer = document.getElementById('new-opportunity-container');
-    const newOpportunityInput = document.getElementById('new-opportunity-input');
-    const saveNewOpportunityBtn = document.getElementById('save-new-opportunity');
+    const addOrgSection = document.getElementById('add-org-section');
     const addOrgBtn = document.getElementById('add-org-btn');
     const newOrgInput = document.getElementById('new-org-input');
     const addOrgMessage = document.getElementById('add-org-message');
-    const addOrgSection = document.getElementById('add-org-section');
+    const opportunitiesDiv = document.getElementById('opportunities');
+    const addOpportunityBtn = document.getElementById('add-opportunity-btn');
+    const addOpportunityContainer = document.getElementById('add-opportunity-container');
+    const newOpportunityInput = document.getElementById('new-opportunity-input');
+    const saveOpportunityBtn = document.getElementById('save-opportunity-btn');
+    const addOpportunityMessage = document.getElementById('add-opportunity-message');
 
-    // Load organizations from backend and populate dropdown
-    function loadOrganizations(selectedId = "") {
-      fetch('https://connectutahtoday-1.onrender.com/api/organizations')
-        .then(res => res.json())
-        .then(data => {
-          // Clear all except first and add_new options
-          orgDropdown.innerHTML = '<option value="">-- Choose --</option>';
-          orgMap = {};
-          idToNameMap = {};
-          (data.organizations || []).forEach(org => {
-            orgMap[org.name] = org.id;
-            idToNameMap[org.id] = org.name;
-            const option = document.createElement('option');
-            option.value = org.id;
-            option.textContent = org.name;
-            orgDropdown.insertBefore(option, orgDropdown.querySelector('option[value="__add_new__"]'));
-          });
-          // Add the "add new" option last if not present
-          if (!orgDropdown.querySelector('option[value="__add_new__"]')) {
-            const addNew = document.createElement('option');
-            addNew.value = "__add_new__";
-            addNew.textContent = "+ Add New Organization";
-            orgDropdown.appendChild(addNew);
-          }
-          if (selectedId) orgDropdown.value = selectedId;
-        });
+    let currentOpportunities = [
+      "Bake Sale","Protest Set up/ Teardown","Graphic Design","Social Media Boosting",
+      "Letter Writing","Food Drive","Flyering","First Aid","Crowd Control","Speaking",
+      "Info Booth Attendant","Screen Printing"
+    ];
+
+    function renderOpportunities(ops) {
+      opportunitiesDiv.innerHTML = ops.map(op =>
+        `<label><input type="checkbox" name="opportunities" value="${op}"> ${op}</label><br>`
+      ).join("");
     }
-    // Initial organization load
-    loadOrganizations();
+    renderOpportunities(currentOpportunities);
 
-    // Password check via backend
-    passwordForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      fetch('https://connectutahtoday-1.onrender.com/api/org-signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: passwordInput.value })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          passwordSection.style.display = 'none';
-          orgFormSection.style.display = 'block';
-          passwordInput.value = '';
-          passwordError.style.display = 'none';
-        } else {
-          passwordError.style.display = 'block';
-          passwordInput.value = '';
-        }
-      })
-      .catch(() => {
-        passwordError.style.display = 'block';
-        passwordInput.value = '';
-      });
-    });
-
-    // Fetch opportunities for selected organization
     orgDropdown.addEventListener('change', function() {
-      const orgId = this.value;
-      if (orgId === "__add_new__") {
-        addOrgSection.style.display = 'block';
-        opportunityCheckboxes.style.display = 'none';
-      } else if (orgId) {
-        addOrgSection.style.display = 'none';
-        opportunityCheckboxes.style.display = '';
-        fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization_id=${encodeURIComponent(orgId)}`)
-          .then(res => res.json())
-          .then(data => {
-            // Remove all children except add new button and new opportunity container
-            opportunityCheckboxes.innerHTML = '';
-            (data.opportunities || []).forEach(op => {
-              const label = document.createElement('label');
-              label.innerHTML = `<input type="checkbox" name="opportunities" value="${op}"> ${op}`;
-              opportunityCheckboxes.appendChild(label);
-              opportunityCheckboxes.appendChild(document.createElement('br'));
-            });
-            // Re-add the Add New button and input
-            opportunityCheckboxes.appendChild(addNewBtn);
-            opportunityCheckboxes.appendChild(newOpportunityContainer);
-          });
+      if(this.value === "__add_new__") {
+        addOrgSection.style.display = "block";
       } else {
-        addOrgSection.style.display = 'none';
-        opportunityCheckboxes.style.display = '';
+        addOrgSection.style.display = "none";
+        renderOpportunities(currentOpportunities);
       }
     });
 
-    // Show new opportunity input
-    addNewBtn.addEventListener('click', function() {
-      newOpportunityInput.focus();
-      opportunityCheckboxes.insertBefore(newOpportunityContainer, addNewBtn);
-      newOpportunityContainer.style.display = 'block';
-    });
-
-    // Save new opportunity logic
-    saveNewOpportunityBtn.addEventListener('click', function() {
-      const val = newOpportunityInput.value.trim();
-      const orgId = orgDropdown.value;
-      if (val && orgId && orgId !== "__add_new__") {
-        fetch('https://connectutahtoday-1.onrender.com/api/opportunities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organization_id: orgId, opportunity: val })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            // Create new opportunity checkbox
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
-            opportunityCheckboxes.insertBefore(label, addNewBtn);
-            opportunityCheckboxes.insertBefore(document.createElement('br'), addNewBtn);
-            // Clear and hide input
-            newOpportunityInput.value = '';
-            newOpportunityContainer.style.display = 'none';
-          }
-        });
-      }
-    });
-
-    // Add new Organization logic
     addOrgBtn.addEventListener('click', function() {
       const name = newOrgInput.value.trim();
-      if (!name) {
+      if(!name) {
         addOrgMessage.textContent = "Organization name required.";
-        addOrgMessage.style.display = 'block';
+        addOrgMessage.style.display = "block";
         return;
       }
-      fetch('https://connectutahtoday-1.onrender.com/api/organizations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.id) {
-          // Add new org to dropdown and select it
-          loadOrganizations(data.id); // reload and select new org
-          addOrgMessage.style.display = 'none';
-          newOrgInput.value = '';
-          addOrgSection.style.display = 'none';
-          opportunityCheckboxes.style.display = '';
-        } else {
-          addOrgMessage.textContent = data.error || "Could not add organization.";
-          addOrgMessage.style.display = 'block';
-        }
-      })
-      .catch(() => {
-        addOrgMessage.textContent = "Could not add organization.";
-        addOrgMessage.style.display = 'block';
-      });
+      addOrgMessage.style.display = "none";
+      // Insert new org before "+ Add New Organization"
+      const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      orgDropdown.insertBefore(option, addNewOption);
+      orgDropdown.value = name;
+      addOrgSection.style.display = "none";
+      newOrgInput.value = '';
+      renderOpportunities(currentOpportunities);
     });
 
-    orgForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!orgDropdown.value || orgDropdown.value === "__add_new__") {
-        alert('Please select an organization before submitting.');
-        orgDropdown.focus();
+    // Add New Opportunity logic
+    addOpportunityBtn.addEventListener('click', function() {
+      addOpportunityContainer.style.display = "block";
+      newOpportunityInput.value = "";
+      addOpportunityMessage.style.display = "none";
+      newOpportunityInput.focus();
+    });
+
+    saveOpportunityBtn.addEventListener('click', function() {
+      const val = newOpportunityInput.value.trim();
+      if(!val) {
+        addOpportunityMessage.textContent = "Opportunity name required.";
+        addOpportunityMessage.style.display = "block";
         return;
       }
-      // You can POST the selected opportunities to your backend
-      passwordSection.style.display = 'block';
-      orgFormSection.style.display = 'none';
-      window.location.href = "volunteer.html";
+      // Prevent duplicates
+      if(currentOpportunities.includes(val)) {
+        addOpportunityMessage.textContent = "That opportunity already exists.";
+        addOpportunityMessage.style.display = "block";
+        return;
+      }
+      addOpportunityMessage.style.display = "none";
+      currentOpportunities.push(val);
+      renderOpportunities(currentOpportunities);
+      addOpportunityContainer.style.display = "none";
+      newOpportunityInput.value = "";
+    });
+
+    document.getElementById('org-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert("Submitted for org: " + orgDropdown.value);
+      location.reload();
     });
   </script>
 </body>
