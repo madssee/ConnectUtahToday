@@ -4,6 +4,58 @@
   <meta charset="UTF-8">
   <title>Volunteering</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .filter-section {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      max-width: 600px;
+      margin: 2em auto 1.5em auto;
+      padding: 2em 1.5em;
+    }
+    .opportunity-list {
+      max-width: 700px;
+      margin: 0 auto 3em auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.11);
+      padding: 2em 1.5em;
+    }
+    .opportunity-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 1.5em;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 1.2em;
+    }
+    .opportunity-item:last-child {
+      border-bottom: none;
+    }
+    .opportunity-img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-right: 1.2em;
+      background: #eee;
+    }
+    .opportunity-org {
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-bottom: .2em;
+    }
+    .opportunity-activities {
+      margin: .25em 0 0 1.2em;
+      padding: 0;
+      list-style: circle;
+    }
+    .no-opps-msg {
+      text-align: center;
+      color: #555;
+      margin: 2em 0 1em 0;
+      font-size: 1.1em;
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -23,233 +75,230 @@
       Be matched with volunteer opportunities with local organizations by selecting the boxes of interest to you below.
       <a href="#" id="disclaimer-link" style="font-size:0.92em;text-decoration:underline;cursor:pointer;">Disclaimer</a>
     </p>
-    <form id="volunteer-form" style="margin:2em auto; max-width:500px;">
-      <fieldset style="margin-bottom:1.5em;">
-        <legend><strong>Organization:</strong></legend>
-        <label><input type="checkbox" name="orgs" value="Any"> Any</label><br>
-        <label><input type="checkbox" name="orgs" value="Indivisible"> Indivisible</label><br>
-        <label><input type="checkbox" name="orgs" value="Bakers for Palestine"> Bakers for Palestine</label><br>
-        <label><input type="checkbox" name="orgs" value="DSA"> DSA</label>
-      </fieldset>
-
-      <fieldset style="margin-bottom:1.5em;">
-        <legend><strong>Activity:</strong></legend>
-        <label><input type="checkbox" name="activities" value="Bake Sale"> Bake Sale</label><br>
-        <label><input type="checkbox" name="activities" value="Protest Set up/ Teardown"> Protest Set up/ Teardown</label><br>
-        <label><input type="checkbox" name="activities" value="Graphic Design"> Graphic Design</label><br>
-        <label><input type="checkbox" name="activities" value="Social Media Boosting"> Social Media Boosting</label><br>
-        <label><input type="checkbox" name="activities" value="Letter Writing"> Letter Writing</label><br>
-        <label><input type="checkbox" name="activities" value="Food Drive"> Food Drive</label><br>
-        <label><input type="checkbox" name="activities" value="Flyering"> Flyering</label><br>
-        <label><input type="checkbox" name="activities" value="First Aid"> First Aid</label><br>
-        <label><input type="checkbox" name="activities" value="Crowd Control"> Crowd Control</label><br>
-        <label><input type="checkbox" name="activities" value="Speaking"> Speaking</label><br>
-        <label><input type="checkbox" name="activities" value="Info Booth Attendant"> Info Booth Attendant</label><br>
-        <label><input type="checkbox" name="activities" value="Screen Printing"> Screen Printing</label><br>
-        <label><input type="checkbox" name="activities" value="other"> Other</label>
-      </fieldset>
-
-      <button type="submit" class="btn">Show Matching Opportunities</button>
-      <button type="button" id="show-all" class="btn" style="margin-left:1em;">See All Opportunities</button>
-    </form>
+    <section class="filter-section">
+      <form id="volunteer-filter-form">
+        <fieldset style="margin-bottom:1.5em;">
+          <legend><strong>Organization:</strong></legend>
+          <div id="org-checkboxes">
+            <span style="color:#888;">Loading organizations...</span>
+          </div>
+        </fieldset>
+        <fieldset style="margin-bottom:1.5em;">
+          <legend><strong>Activities:</strong></legend>
+          <div id="activity-checkboxes">
+            <span style="color:#888;">Loading activities...</span>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+    <section class="opportunity-list" id="opportunity-list">
+      <div style="color:#888;">Loading opportunities...</div>
+    </section>
   </main>
-
-  <div id="results-page" style="display:none; max-width:800px; margin:2.5em auto 0 auto; background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.11); padding:2.5em 2em 2em 2em;">
-    <button id="back-btn" class="btn" style="margin-bottom:1.5em;">&#8592; Back</button>
-    <div id="results"></div>
-  </div>
-
   <div id="disclaimer-popover" style="display:none;position:fixed;top:22%;left:50%;transform:translate(-50%,0);background:#fff;border:1px solid #888;box-shadow:0 4px 24px rgba(0,0,0,0.18);padding:2em;max-width:520px;z-index:1000;border-radius:8px;font-size:0.97em;">
     <strong>Disclaimer:</strong> Connect Utah Today provides links to external organizations offering volunteer opportunities for informational purposes only. We do not endorse, guarantee, or assume responsibility for the organizations listed or the opportunities they provide. All volunteering arrangements are made directly between you and the respective organization. Connect Utah Today does not verify the legitimacy, safety, or quality of any volunteer opportunity or organization, and is not responsible for any outcomes, experiences, or issues arising from your participation. Please conduct your own due diligence before engaging with any organization. By clicking on a volunteer opportunity link, you will be redirected to a third-party website and subject to their terms, conditions, and privacy policies. Connect Utah Today is not responsible for the content or practices of any linked site.
     <br><br>
     <button id="close-disclaimer" style="margin-top:1em;padding:0.5em 1.5em;">Close</button>
   </div>
-
   <script>
-  const opportunities = [
-    {
-      org: "SLC Mutual Aid",
-      activities: ["Food Drive", "Food Delivery", "Back to School Supply Drive"],
-      link: "https://slcmutualaid.com/joinus"
-    },
-    {
-      org: "Indivisible",
-      activities: ["Food Drive", "Protest Set up/ Teardown"],
-      link: "https://www.indivisibleutahcounty.com/events"
-    },
-    {
-      org: "Bakers for Palestine",
-      activities: ["Bake Sale", "Social Media Boosting"],
-      link: "https://www.instagram.com/slcbakersforpalestine?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
-    },
-    //{
-    //  org: "801 United",
-    //  activities: ["Frontend Developer", "Graphic Design"],
-    //  link: "https://example.com/beehive-signup"
-   // },
-    {
-      org: "DSA",
-      activities: ["Flyering"],
-      link: "https://saltlakedsa.org/working-groups/"
+    // ---- Utility: Org Name to Asset Normalization ----
+    function orgNameToAsset(orgName) {
+      return orgName.toLowerCase().replace(/\s+/g, '_');
     }
-  ];
+    function getOrgImg(orgName) {
+      return `assets/${orgNameToAsset(orgName)}.jpg`;
+    }
 
-  // Map org names to image filenames (update as needed)
-  const orgImages = {
-    "SLC Mutual Aid": "assets/SLCMutualAid.png",
-    "Indivisible": "assets/indivisible.png",
-    //"801 United": "assets/beehiveCollectivePlaceholder.jpg",
-    "Bakers for Palestine": "assets/bakers_for_palestine_SLC.jpg",
-    "DSA": "assets/DSA.jpg"
-  };
-  const placeholderImg = "assets/placeholder.png";
+    // ---- State ----
+    let allOrganizations = [];
+    let allOpportunities = [];
+    let allActivities = [];
 
-  function getOrgImg(org) {
-    return orgImages[org] || placeholderImg;
-  }
+    // ---- Fetch data and initialize filters ----
+    async function fetchOrganizations() {
+      const res = await fetch('https://connectutahtoday-1.onrender.com/api/organizations');
+      const data = await res.json();
+      return data.organizations || [];
+    }
 
-  function renderOpportunities(matches, unmatched, showOther = true) {
-    let html = "";
-    const selectedActs = window.selectedActs || [];
-
-    // Build matches and collect "partial" (non-matching) activities for selected orgs
-    let extraUnmatched = [];
-    if (matches.length) {
-      html += `<h2 class="volunteer-header">Volunteer Opportunities:</h2><ul style="list-style:none;padding:0;">`;
-      matches.forEach(op => {
-        const matchingActs = selectedActs.length
-          ? op.activities.filter(a => selectedActs.includes(a))
-          : op.activities;
-        if (matchingActs.length) {
-          html += `<li style="display:flex;align-items:flex-start;margin-bottom:1.2em;">
-            <img src="${getOrgImg(op.org)}" alt="${op.org}" style="width:144px;height:144px;object-fit:cover;border-radius:6px;margin-right:1em;">
-            <div>
-              <strong>${op.org}</strong>
-              <ul style="margin:0.3em 0 0.3em 1.2em; list-style-type: circle;">
-                ${matchingActs.map(a => `
-                  <li style="list-style:circle inside;margin-left:0;">
-                    ${a}
-                    <div style="margin-left:1.3em;">
-                      <a href="${op.link}" target="_blank">Sign Up</a>
-                    </div>
-                  </li>
-                `).join("")}
-              </ul>
-            </div>
-          </li>`;
-        }
-        // For this org, add non-matching activities to extraUnmatched
-        const nonMatchingActs = op.activities.filter(a => !selectedActs.includes(a));
-        if (selectedActs.length && matchingActs.length && nonMatchingActs.length) {
-          extraUnmatched.push({
-            org: op.org,
-            activities: nonMatchingActs,
-            link: op.link
+    async function fetchAllOpportunities() {
+      // 1. Fetch all organizations first to get their IDs
+      const orgs = await fetchOrganizations();
+      // 2. For each org, fetch its opportunities
+      const allOpps = [];
+      for (let org of orgs) {
+        const res = await fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization_id=${org.id}`);
+        const data = await res.json();
+        (data.opportunities || []).forEach(opp => {
+          allOpps.push({
+            orgId: org.id,
+            orgName: org.name,
+            activity: opp
           });
+        });
+      }
+      return allOpps;
+    }
+
+    // ---- Render filter checkboxes ----
+    function renderOrgCheckboxes(orgs) {
+      const container = document.getElementById('org-checkboxes');
+      container.innerHTML = '';
+      // "Any" checkbox
+      const anyId = 'org-any';
+      const anyBox = document.createElement('label');
+      anyBox.innerHTML = `<input type="checkbox" id="${anyId}" name="orgs" value="Any" checked> Any`;
+      container.appendChild(anyBox);
+      container.appendChild(document.createElement('br'));
+      // Each org
+      orgs.forEach(org => {
+        const id = `org-${org.id}`;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" id="${id}" name="orgs" value="${org.name}" checked> ${org.name}`;
+        container.appendChild(label);
+        container.appendChild(document.createElement('br'));
+      });
+    }
+    function renderActivityCheckboxes(activities) {
+      const container = document.getElementById('activity-checkboxes');
+      container.innerHTML = '';
+      // "Any" checkbox
+      const anyId = 'activity-any';
+      const anyBox = document.createElement('label');
+      anyBox.innerHTML = `<input type="checkbox" id="${anyId}" name="activities" value="Any" checked> Any`;
+      container.appendChild(anyBox);
+      container.appendChild(document.createElement('br'));
+      // Each activity
+      activities.forEach(act => {
+        const id = `activity-${act.replace(/\s+/g,'-').toLowerCase()}`;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" id="${id}" name="activities" value="${act}" checked> ${act}`;
+        container.appendChild(label);
+        container.appendChild(document.createElement('br'));
+      });
+    }
+
+    // Render opportunity list
+    function renderOpportunities(opps, orgs, activities) {
+      const section = document.getElementById('opportunity-list');
+      if (!opps.length) {
+        section.innerHTML = `<div class="no-opps-msg">No matching opportunities found.</div>`;
+        return;
+      }
+      let html = '';
+      // Group by org for better UX
+      const orgMap = {};
+      opps.forEach(opp => {
+        if (!orgMap[opp.orgName]) orgMap[opp.orgName] = [];
+        orgMap[opp.orgName].push(opp.activity);
+      });
+      Object.keys(orgMap).forEach(orgName => {
+        html += `<div class="opportunity-item">
+          <img src="${getOrgImg(orgName)}" alt="${orgName}" class="opportunity-img">
+          <div>
+            <div class="opportunity-org">${orgName}</div>
+            <ul class="opportunity-activities">
+              ${orgMap[orgName].map(a => `<li>${a}</li>`).join('')}
+            </ul>
+            <!-- Optionally add a Sign Up link if you have org URLs -->
+          </div>
+        </div>`;
+      });
+      section.innerHTML = html;
+    }
+
+    // Filtering logic
+    function getSelectedOrgs() {
+      const checkboxes = document.querySelectorAll('input[name="orgs"]:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+    function getSelectedActivities() {
+      const checkboxes = document.querySelectorAll('input[name="activities"]:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+    function filterOpportunities() {
+      let orgs = getSelectedOrgs();
+      let acts = getSelectedActivities();
+      let filtered = allOpportunities;
+      if (!orgs.includes('Any')) {
+        filtered = filtered.filter(opp => orgs.includes(opp.orgName));
+      }
+      if (!acts.includes('Any')) {
+        filtered = filtered.filter(opp => acts.includes(opp.activity));
+      }
+      renderOpportunities(filtered, allOrganizations, allActivities);
+    }
+
+    // Checkbox "Any" logic
+    function setupAnyCheckboxLogic() {
+      // For orgs
+      const orgContainer = document.getElementById('org-checkboxes');
+      orgContainer.addEventListener('change', e => {
+        if (e.target.name === 'orgs') {
+          const anyBox = orgContainer.querySelector('input[value="Any"]');
+          const allBoxes = Array.from(orgContainer.querySelectorAll('input[type="checkbox"]:not([value="Any"])'));
+          if (e.target.value === 'Any') {
+            // Toggling Any: check/uncheck all
+            allBoxes.forEach(cb => cb.checked = anyBox.checked);
+          } else {
+            // Toggling an org: if any is unchecked, uncheck Any; if all orgs checked, check Any
+            if (!e.target.checked) anyBox.checked = false;
+            if (allBoxes.every(cb => cb.checked)) anyBox.checked = true;
+          }
+          filterOpportunities();
         }
       });
-      html += `</ul>`;
-    } else {
-      html += `<p>No matching opportunities found.</p>`;
+      // For activities
+      const actContainer = document.getElementById('activity-checkboxes');
+      actContainer.addEventListener('change', e => {
+        if (e.target.name === 'activities') {
+          const anyBox = actContainer.querySelector('input[value="Any"]');
+          const allBoxes = Array.from(actContainer.querySelectorAll('input[type="checkbox"]:not([value="Any"])'));
+          if (e.target.value === 'Any') {
+            allBoxes.forEach(cb => cb.checked = anyBox.checked);
+          } else {
+            if (!e.target.checked) anyBox.checked = false;
+            if (allBoxes.every(cb => cb.checked)) anyBox.checked = true;
+          }
+          filterOpportunities();
+        }
+      });
     }
 
-    // Only show "Other Opportunities" if showOther is true
-    if (showOther) {
-      const allUnmatched = [...extraUnmatched, ...unmatched];
+    // ---- Page initialization ----
+    async function initializeVolunteerPage() {
+      allOrganizations = await fetchOrganizations();
+      renderOrgCheckboxes(allOrganizations);
 
-      if (allUnmatched.length) {
-        html += `<h3 class="other-opportunities-header" style="margin-top:2em;">Other Opportunities:</h3><ul style="list-style:none;padding:0;">`;
-        allUnmatched.forEach(op => {
-          html += `<li style="display:flex;align-items:flex-start;opacity:0.8;margin-bottom:1.2em;">
-            <img src="${getOrgImg(op.org)}" alt="${op.org}" style="width:120px;height:120px;object-fit:cover;border-radius:6px;margin-right:1em;">
-            <div>
-              <strong style="color:#333;">${op.org}</strong>
-              <ul style="margin:0.3em 0 0.3em 1.2em; list-style-type: circle; color:#444;">
-                ${op.activities.map(a => `
-                  <li style="list-style:circle inside;margin-left:0;">
-                    ${a}
-                  </li>
-                `).join("")}
-              </ul>
-              <div style="margin-left:5em;">
-                <a href="${op.link}" target="_blank" style="pointer-events:none;opacity:0.8;color:#444;">Sign Up</a>
-              </div>
-            </div>
-          </li>`;
-        });
-        html += `</ul>`;
-      }
+      allOpportunities = await fetchAllOpportunities();
+
+      const actSet = new Set(allOpportunities.map(o => o.activity));
+      allActivities = Array.from(actSet).sort();
+      renderActivityCheckboxes(allActivities);
+
+      renderOpportunities(allOpportunities, allOrganizations, allActivities);
+
+      setupAnyCheckboxLogic();
     }
-    document.getElementById("results").innerHTML = html;
-  }
 
-  function showResultsPage() {
-    document.querySelector("main").style.display = "none";
-    document.getElementById("results-page").style.display = "block";
-  }
+    initializeVolunteerPage();
 
-  function showFormPage() {
-    document.querySelector("main").style.display = "block";
-    document.getElementById("results-page").style.display = "none";
-  }
-
-  document.getElementById("volunteer-form").addEventListener("submit", function(e) {
-    e.preventDefault();
-    let orgs = Array.from(document.querySelectorAll('input[name="orgs"]:checked')).map(o => o.value);
-    const acts = Array.from(document.querySelectorAll('input[name="activities"]:checked')).map(o => o.value);
-
-    // If no org is selected and "Any" is not selected, default to "Any"
-    if (orgs.length === 0 || (orgs.length > 0 && !orgs.includes("Any") && orgs.every(o => o.trim() === ""))) {
-      orgs = ["Any"];
-    }
-    const anyOrg = orgs.includes("Any");
-    window.selectedActs = acts;
-
-    const matches = opportunities.filter(op => {
-      const orgMatch = anyOrg || orgs.includes(op.org);
-      const actMatch = op.activities.some(a => acts.includes(a));
-      return orgMatch && actMatch;
+    // ---- Disclaimer popover logic ----
+    const disclaimerLink = document.getElementById('disclaimer-link');
+    const disclaimerPopover = document.getElementById('disclaimer-popover');
+    const closeDisclaimer = document.getElementById('close-disclaimer');
+    disclaimerLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      disclaimerPopover.style.display = 'block';
     });
-    const unmatched = opportunities.filter(op => {
-      const orgMatch = anyOrg || orgs.includes(op.org);
-      const actMatch = op.activities.some(a => acts.includes(a));
-      return !(orgMatch && actMatch);
-    });
-    renderOpportunities(matches, unmatched);
-    showResultsPage();
-  });
-
-  document.getElementById("show-all").addEventListener("click", function() {
-    window.selectedActs = [];
-    // Show all orgs and all activities as matches
-    renderOpportunities(opportunities, [], false);
-    showResultsPage();
-  });
-
-  document.getElementById("back-btn").addEventListener("click", function() {
-    showFormPage();
-  });
-
-  // Disclaimer popover logic
-  const disclaimerLink = document.getElementById('disclaimer-link');
-  const disclaimerPopover = document.getElementById('disclaimer-popover');
-  const closeDisclaimer = document.getElementById('close-disclaimer');
-  disclaimerLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    disclaimerPopover.style.display = 'block';
-  });
-  closeDisclaimer.addEventListener('click', function() {
-    disclaimerPopover.style.display = 'none';
-  });
-  window.addEventListener('click', function(e) {
-    if (disclaimerPopover.style.display === 'block' && !disclaimerPopover.contains(e.target) && e.target !== disclaimerLink) {
+    closeDisclaimer.addEventListener('click', function() {
       disclaimerPopover.style.display = 'none';
-    }
-  });
-
-  // Show all by default
-  window.selectedActs = [];
-  renderOpportunities(opportunities, []);
+    });
+    window.addEventListener('click', function(e) {
+      if (disclaimerPopover.style.display === 'block' && !disclaimerPopover.contains(e.target) && e.target !== disclaimerLink) {
+        disclaimerPopover.style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
