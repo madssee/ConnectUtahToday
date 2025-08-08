@@ -39,12 +39,23 @@
 
         <label>Volunteer Opportunities:</label><br>
         <div id="opportunity-checkboxes" style="margin-bottom:1em;">
-          <!-- Default checkboxes will be inserted here -->
-        </div>
-        <button type="button" id="add-new-opportunity" style="margin:1em 0 0 0;padding:0.4em 1em;display:block;text-align:left;">Add New</button>
-        <div id="new-opportunity-container" style="display:none; margin:1em 0;">
-          <input type="text" id="new-opportunity-input" placeholder="Enter new opportunity" style="width:70%;padding:0.4em;">
-          <button type="button" id="save-new-opportunity">Save</button>
+          <label><input type="checkbox" name="opportunities" value="Bake Sale"> Bake Sale</label><br>
+          <label><input type="checkbox" name="opportunities" value="Protest Set up/ Teardown"> Protest Set up/ Teardown</label><br>
+          <label><input type="checkbox" name="opportunities" value="Graphic Design"> Graphic Design</label><br>
+          <label><input type="checkbox" name="opportunities" value="Social Media Boosting"> Social Media Boosting</label><br>
+          <label><input type="checkbox" name="opportunities" value="Letter Writing"> Letter Writing</label><br>
+          <label><input type="checkbox" name="opportunities" value="Food Drive"> Food Drive</label><br>
+          <label><input type="checkbox" name="opportunities" value="Flyering"> Flyering</label><br>
+          <label><input type="checkbox" name="opportunities" value="First Aid"> First Aid</label><br>
+          <label><input type="checkbox" name="opportunities" value="Crowd Control"> Crowd Control</label><br>
+          <label><input type="checkbox" name="opportunities" value="Speaking"> Speaking</label><br>
+          <label><input type="checkbox" name="opportunities" value="Info Booth Attendant"> Info Booth Attendant</label><br>
+          <label><input type="checkbox" name="opportunities" value="Screen Printing"> Screen Printing</label><br>
+          <button type="button" id="add-new-opportunity" style="margin:1em 0 0 0;padding:0.4em 1em;display:block;text-align:left;">Add New</button>
+          <div id="new-opportunity-container" style="display:none; margin:1em 0;">
+            <input type="text" id="new-opportunity-input" placeholder="Enter new opportunity" style="width:70%;padding:0.4em;">
+            <button type="button" id="save-new-opportunity">Save</button>
+          </div>
         </div>
         <div style="text-align:center;">
           <button type="submit" class="btn" style="margin-top:1em;">Submit</button>
@@ -53,29 +64,7 @@
     </div>
   </main>
   <script>
-    // Default orgs and default opportunities (shown at load)
-    const defaultOrgs = [
-      "Indivisible",
-      "Bakers for Palestine",
-      "DSA",
-      "SLC Mutual Aid"
-    ];
-    const defaultOpportunities = [
-      "Bake Sale",
-      "Protest Set up/ Teardown",
-      "Graphic Design",
-      "Social Media Boosting",
-      "Letter Writing",
-      "Food Drive",
-      "Flyering",
-      "First Aid",
-      "Crowd Control",
-      "Speaking",
-      "Info Booth Attendant",
-      "Screen Printing"
-    ];
-
-    // DOM elements
+    // Password protection logic using backend
     const passwordForm = document.getElementById('password-form');
     const passwordInput = document.getElementById('org-password');
     const passwordError = document.getElementById('password-error');
@@ -93,25 +82,10 @@
     const addOrgMessage = document.getElementById('add-org-message');
     const addOrgSection = document.getElementById('add-org-section');
 
-    // Keep track of opportunities currently displayed (for adding new)
-    let currentOpportunities = [...defaultOpportunities];
-
-    // Render the opportunities list
-    function renderOpportunities() {
-      opportunityCheckboxes.innerHTML = '';
-      currentOpportunities.forEach(op => {
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" name="opportunities" value="${op}"> ${op}`;
-        opportunityCheckboxes.appendChild(label);
-        opportunityCheckboxes.appendChild(document.createElement('br'));
-      });
-    }
-    renderOpportunities();
-
     // Password check via backend
     passwordForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      fetch('/api/org-signin', {
+      fetch('https://connectutahtoday-1.onrender.com/api/org-signin', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: passwordInput.value })
@@ -139,43 +113,68 @@
       const org = this.value;
       if (org === "__add_new__") {
         addOrgSection.style.display = 'block';
-        // Show default opportunities and enable add new
-        currentOpportunities = [...defaultOpportunities];
-        renderOpportunities();
-        opportunityCheckboxes.style.display = '';
-      } else if (org) {
-        addOrgSection.style.display = 'none';
-        opportunityCheckboxes.style.display = '';
-        fetch(`/api/opportunities?organization=${encodeURIComponent(org)}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.opportunities && data.opportunities.length > 0) {
-              currentOpportunities = [...data.opportunities];
-            } else {
-              currentOpportunities = [...defaultOpportunities];
-            }
-            renderOpportunities();
-          }).catch(() => {
-            currentOpportunities = [...defaultOpportunities];
-            renderOpportunities();
-          });
       } else {
         addOrgSection.style.display = 'none';
-        opportunityCheckboxes.style.display = '';
-        currentOpportunities = [...defaultOpportunities];
-        renderOpportunities();
+        fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization=${encodeURIComponent(org)}`)
+          .then(res => res.json())
+          .then(data => {
+            opportunityCheckboxes.innerHTML = '';
+            (data.opportunities || []).forEach(op => {
+              const label = document.createElement('label');
+              label.innerHTML = `<input type="checkbox" name="opportunities" value="${op}"> ${op}`;
+              opportunityCheckboxes.appendChild(label);
+              opportunityCheckboxes.appendChild(document.createElement('br'));
+            });
+            // Add New button and input
+            opportunityCheckboxes.appendChild(addNewBtn);
+            opportunityCheckboxes.appendChild(newOpportunityContainer);
+          });
+      }
+    });
+    addNewBtn.addEventListener('click', function() {
+      newOpportunityInput.focus();
+      opportunityCheckboxes.insertBefore(newOpportunityContainer, addNewBtn);
+      newOpportunityContainer.style.display = 'block';
+    });
+
+    // Save new opportunity logic
+    saveNewOpportunityBtn.addEventListener('click', function() {
+      const val = newOpportunityInput.value.trim();
+      const org = orgDropdown.value;
+      if (val && org && org !== "__add_new__") {
+        fetch('https://connectutahtoday-1.onrender.com/api/opportunities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organization: org, opportunity: val })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Create new opportunity checkbox
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
+            
+            // Insert BEFORE the Add New button (at bottom of opportunities list)
+            opportunityCheckboxes.insertBefore(label, addNewBtn);
+            opportunityCheckboxes.insertBefore(document.createElement('br'), addNewBtn);
+            
+            // Clear and hide input
+            newOpportunityInput.value = '';
+            newOpportunityContainer.style.display = 'none';
+          }
+        });
       }
     });
 
-    // Show add new org UI
-    addOrgBtn?.addEventListener('click', function() {
+    // Add new Organization logic
+    addOrgBtn.addEventListener('click', function() {
       const name = newOrgInput.value.trim();
       if (!name) {
         addOrgMessage.textContent = "Organization name required.";
         addOrgMessage.style.display = 'block';
         return;
       }
-      fetch('/api/organizations', {
+      fetch('https://connectutahtoday-1.onrender.com/api/organizations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
@@ -183,19 +182,15 @@
       .then(res => res.json())
       .then(data => {
         if (data.id) {
-          // Insert new org above add new
-          const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
+          // Add new org to dropdown and select it
           const option = document.createElement('option');
           option.value = name;
           option.textContent = name;
+          const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
           orgDropdown.insertBefore(option, addNewOption);
           orgDropdown.value = name;
           addOrgMessage.style.display = 'none';
           newOrgInput.value = '';
-          addOrgSection.style.display = 'none';
-          opportunityCheckboxes.style.display = '';
-          currentOpportunities = [...defaultOpportunities];
-          renderOpportunities();
         } else {
           addOrgMessage.textContent = data.error || "Could not add organization.";
           addOrgMessage.style.display = 'block';
@@ -207,56 +202,14 @@
       });
     });
 
-    // Show new opportunity input
-    addNewBtn.addEventListener('click', function() {
-      newOpportunityInput.value = '';
-      newOpportunityContainer.style.display = 'block';
-      newOpportunityInput.focus();
-    });
-
-    // Save new opportunity logic
-    saveNewOpportunityBtn.addEventListener('click', function() {
-      const val = newOpportunityInput.value.trim();
-      const org = orgDropdown.value;
-      if (!val) return;
-      // Prevent duplicates
-      if (currentOpportunities.includes(val)) {
-        newOpportunityInput.value = '';
-        newOpportunityContainer.style.display = 'none';
-        return;
-      }
-      if (org && org !== "__add_new__") {
-        fetch('/api/opportunities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organization: org, opportunity: val })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            currentOpportunities.push(val);
-            renderOpportunities();
-            newOpportunityInput.value = '';
-            newOpportunityContainer.style.display = 'none';
-          }
-        });
-      } else {
-        // For new org or default, just add locally
-        currentOpportunities.push(val);
-        renderOpportunities();
-        newOpportunityInput.value = '';
-        newOpportunityContainer.style.display = 'none';
-      }
-    });
-
     orgForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      if (!orgDropdown.value || orgDropdown.value === "__add_new__") {
+      if (!orgDropdown.value) {
         alert('Please select an organization before submitting.');
         orgDropdown.focus();
         return;
       }
-      // You can POST the selected opportunities to your backend here if needed
+      // You can POST the selected opportunities to your backend
       passwordSection.style.display = 'block';
       orgFormSection.style.display = 'none';
       window.location.href = "volunteer.html";
