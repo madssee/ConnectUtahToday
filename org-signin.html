@@ -22,10 +22,10 @@
         <label for="org-dropdown">Select an organization:</label><br>
         <select id="org-dropdown" name="org-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
           <option value="">-- Choose --</option>
-          <option value="Indivisible">Indivisible</option>
-          <option value="Bakers for Palestine">Bakers for Palestine</option>
-          <option value="DSA">DSA</option>
-          <option value="SLC Mutual Aid">SLC Mutual Aid</option>
+          <option value="1">Indivisible</option>
+          <option value="2">Bakers for Palestine</option>
+          <option value="3">DSA</option>
+          <option value="4">SLC Mutual Aid</option>
           <option value="__add_new__">+ Add New Organization</option>
         </select><br><br>
 
@@ -115,7 +115,7 @@
         addOrgSection.style.display = 'block';
       } else {
         addOrgSection.style.display = 'none';
-        fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization=${encodeURIComponent(org)}`)
+        fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization_id=${org}`)
           .then(res => res.json())
           .then(data => {
             opportunityCheckboxes.innerHTML = '';
@@ -145,7 +145,7 @@
         fetch('https://connectutahtoday-1.onrender.com/api/opportunities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organization: org, opportunity: val })
+          body: JSON.stringify({ organization_id: org, opportunity: val })
         })
         .then(res => res.json())
         .then(data => {
@@ -153,11 +153,8 @@
             // Create new opportunity checkbox
             const label = document.createElement('label');
             label.innerHTML = `<input type="checkbox" name="opportunities" value="${val}"> ${val}`;
-            
-            // Insert BEFORE the Add New button (at bottom of opportunities list)
             opportunityCheckboxes.insertBefore(label, addNewBtn);
             opportunityCheckboxes.insertBefore(document.createElement('br'), addNewBtn);
-            
             // Clear and hide input
             newOpportunityInput.value = '';
             newOpportunityContainer.style.display = 'none';
@@ -184,11 +181,11 @@
         if (data.id) {
           // Add new org to dropdown and select it
           const option = document.createElement('option');
-          option.value = name;
+          option.value = data.id; // use the returned ID!
           option.textContent = name;
           const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
           orgDropdown.insertBefore(option, addNewOption);
-          orgDropdown.value = name;
+          orgDropdown.value = data.id;
           addOrgMessage.style.display = 'none';
           newOrgInput.value = '';
         } else {
@@ -209,7 +206,7 @@
         orgDropdown.focus();
         return;
       }
-      // You can POST the selected opportunities to your backend
+      //POST the selected opportunities to backend
       passwordSection.style.display = 'block';
       orgFormSection.style.display = 'none';
       window.location.href = "volunteer.html";
