@@ -101,7 +101,7 @@
       const end = new Date(year, month + 1, 0, 23, 59, 59);
       const startISO = start.toISOString();
       const endISO = end.toISOString();
-      return `https://connectutahtoday-1.onrender.com/api/calendar?timeMin=${encodeURIComponent(startISO)}&timeMax=${encodeURIComponent(endISO)}`;
+      return `https://connectutahtoday-1.onrender.com/api/all-events?timeMin=${encodeURIComponent(startISO)}&timeMax=${encodeURIComponent(endISO)}`;
     }
 
     // Fetch events from Render backend (Google Calendar proxy)
