@@ -91,7 +91,7 @@
     // --- Calendar Logic ---
     let currentCalDate = new Date();
     let calendarEvents = {};
-
+/* TEMPORARY FIX - prevent API payload from overwhelming UI and causing timeout
     // Render API endpoint for calendar
     function getCalendarApiUrlForMonth(date) {
       // Build first day and last day of target month
@@ -103,7 +103,17 @@
       const endISO = end.toISOString();
       return `https://connectutahtoday-1.onrender.com/api/all-events?timeMin=${encodeURIComponent(startISO)}&timeMax=${encodeURIComponent(endISO)}`;
     }
-
+*/
+// this function caps for the month of august, see comment above
+    function getCalendarApiUrlForMonth() {
+      // Always use August of the current year (or a fixed year if you prefer)
+      const year = new Date().getFullYear(); // or set a fixed year, e.g. 2025
+      const start = new Date(year, 7 - 1, 1); // August is month 7 (0-based index)
+      const end = new Date(year, 7, 0, 23, 59, 59); // Last day of August
+      const startISO = start.toISOString();
+      const endISO = end.toISOString();
+      return `https://connectutahtoday-1.onrender.com/api/all-events?timeMin=${encodeURIComponent(startISO)}&timeMax=${encodeURIComponent(endISO)}`;
+    }
     // Fetch events from Render backend (Google Calendar proxy)
     async function fetchEventsForCalendar() {
       try {
