@@ -11,7 +11,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "pg": "^8.11.2"
+    "pg": "^8.11.2",
+    "server": "^1.0.42"
   },
   "scripts": {
     "start": "node server.js"
