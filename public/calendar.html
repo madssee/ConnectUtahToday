@@ -104,12 +104,14 @@
       return `https://connectutahtoday-1.onrender.com/api/all-events?timeMin=${encodeURIComponent(startISO)}&timeMax=${encodeURIComponent(endISO)}`;
     }
 */
-// this function caps for the month of august, see comment above
-    function getCalendarApiUrlForMonth() {
-      // Always use August of the current year (or a fixed year if you prefer)
-      const year = new Date().getFullYear(); // or set a fixed year, e.g. 2025
-      const start = new Date(year, 7 - 1, 1); // August is month 7 (0-based index)
-      const end = new Date(year, 7, 0, 23, 59, 59); // Last day of August
+// this function caps for one week, see comment above
+    function getCalendarApiUrlForMonth(date) {
+        // Use the current date or the selected date as the range start
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      const start = new Date(year, month, day); // Start from the current/selected day
+      const end = new Date(year, month, day + 6, 23, 59, 59); // End 6 days later (7 days total)
       const startISO = start.toISOString();
       const endISO = end.toISOString();
       return `https://connectutahtoday-1.onrender.com/api/all-events?timeMin=${encodeURIComponent(startISO)}&timeMax=${encodeURIComponent(endISO)}`;
