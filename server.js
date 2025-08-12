@@ -97,22 +97,22 @@ app.post('/api/opportunities', async (req, res) => {
 
 /**
  * Mobilize Events API Proxy (production endpoint)
+ * Updated to always return events for August 2025.STAGING ONLY, SEE BELOW
  */
 app.get('/api/mobilize-events', async (req, res) => {
   console.log('=== MOBILIZE API REQUEST ===');
   console.log('Query params:', req.query);
 
-  const { timeMin, timeMax } = req.query;
-  // Convert ISO8601 to UNIX timestamp (seconds)
-  const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
-  const end = timeMax ? Math.floor(new Date(timeMax).getTime() / 1000) : undefined;
+  // Always use August 2025 for Mobilize query STAGING ONLY, SEE BELOW
+  const start = Math.floor(new Date('2025-08-01T00:00:00Z').getTime() / 1000);
+  const end = Math.floor(new Date('2025-09-01T00:00:00Z').getTime() / 1000);
 
-  console.log('Converted timestamps - start:', start, 'end:', end);
+  console.log('Forced timestamps - start:', start, 'end:', end);
 
   // Use production Mobilize API endpoint
   let url = 'https://api.mobilize.us/v1/events?';
-  if (start) url += `timeslot_start=gte_${start}&`;
-  if (end) url += `timeslot_start=lt_${end}&`;
+  url += `timeslot_start=gte_${start}&`;
+  url += `timeslot_start=lt_${end}&`;
 
   console.log('Final API URL:', url);
 
@@ -143,6 +143,56 @@ app.get('/api/mobilize-events', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch Mobilize events', details: error.message });
   }
 });
+
+/**
+// * Mobilize Events API Proxy (production endpoint)
+// * OLD: Used to allow custom timeMin/timeMax from query (return to later)
+// app.get('/api/mobilize-events', async (req, res) => {
+//   console.log('=== MOBILIZE API REQUEST ===');
+//   console.log('Query params:', req.query);
+//
+//   const { timeMin, timeMax } = req.query;
+//   // Convert ISO8601 to UNIX timestamp (seconds)
+//   const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
+//   const end = timeMax ? Math.floor(new Date(timeMax).getTime() / 1000) : undefined;
+//
+//   console.log('Converted timestamps - start:', start, 'end:', end);
+//
+//   // Use production Mobilize API endpoint
+//   let url = 'https://api.mobilize.us/v1/events?';
+//   if (start) url += `timeslot_start=gte_${start}&`;
+//   if (end) url += `timeslot_start=lt_${end}&`;
+//
+//   console.log('Final API URL:', url);
+//
+//   try {
+//     console.log('Making request to Mobilize API...');
+//     const response = await axios.get(url);
+//
+//     const events = (response.data.data || []).map(event => {
+//       // Pick the first timeslot for display purposes
+//       const timeslot = (event.timeslots && event.timeslots[0]) || {};
+//       return {
+//         id: event.id,
+//         summary: event.title,
+//         description: event.description,
+//         date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
+//         endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
+//         image: event.featured_image_url,
+//         org: event.sponsor && event.sponsor.name,
+//         url: event.browser_url,
+//         event_type: event.event_type,
+//         source: 'mobilize'
+//       };
+//     });
+//
+//     res.json({ items: events });
+//   } catch (error) {
+//     console.error('Error fetching Mobilize events:', error.message);
+//     res.status(500).json({ error: 'Failed to fetch Mobilize events', details: error.message });
+//   }
+// });
+*/
 
 /**
  * Google Calendar API Proxy (production)
@@ -229,7 +279,7 @@ app.get('/api/all-events', async (req, res) => {
 });
 
 /**
- * Google Calendar API (raw, for calendar page)
+ * Google Calendar API
  * This is the same as /api/google-calendar but returns native Google response.
  */
 app.get('/api/calendar', async (req, res) => {
