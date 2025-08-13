@@ -101,16 +101,17 @@ app.post('/api/opportunities', async (req, res) => {
 async function fetchMobilizeEvents(reqQuery) {
   let { timeMin, timeMax } = reqQuery;
   if (!timeMin || !timeMax) {
-    // Default to December 1, 2017 - October 1, 2025
     timeMin = '2017-12-01T00:00:00Z';
     timeMax = '2025-10-01T00:00:00Z';
   }
+  const start = Math.floor(new Date(timeMin).getTime() / 1000);
+  const end = Math.floor(new Date(timeMax).getTime() / 1000);
+
   const orgIds = [50, 51, 52, 53, 54, 55, 56, 57];
   let url = 'https://staging-api.mobilize.us/v1/events?';
   orgIds.forEach(id => url += `organization_id=${id}&`);
-  url += `timeslot_start=gte_${encodeURIComponent(timeMin)}&`;
-  url += `timeslot_start=lt_${encodeURIComponent(timeMax)}&`;
-
+  url += `timeslot_start=gte_${start}&`;
+  url += `timeslot_start=lt_${end}&`;
   try {
     const response = await axios.get(url);
     const events = (response.data.data || [])
