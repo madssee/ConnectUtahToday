@@ -97,45 +97,60 @@ app.post('/api/opportunities', async (req, res) => {
 
 /**
  * Mobilize Events API Proxy (production endpoint)
- * Updated to always return events for August 2025.STAGING ONLY, SEE BELOW
+ * Updated to return only events sponsored by "Pritzker Test" from org ids 50-57, and with timeslots in the requested range.
  */
 app.get('/api/mobilize-events', async (req, res) => {
   console.log('=== MOBILIZE API REQUEST ===');
   console.log('Query params:', req.query);
 
-  // Always use August 2025 for Mobilize query STAGING ONLY, SEE BELOW
-  const start = Math.floor(new Date('2025-08-01T00:00:00Z').getTime() / 1000);
-  const end = Math.floor(new Date('2025-09-01T00:00:00Z').getTime() / 1000);
+  // Get timeMin/timeMax from query, fallback to August 2025 if missing
+  let { timeMin, timeMax } = req.query;
+  if (!timeMin || !timeMax) {
+    // Default to August 2025
+    timeMin = '2025-08-01T00:00:00Z';
+    timeMax = '2025-09-01T00:00:00Z';
+  }
+  const start = Math.floor(new Date(timeMin).getTime() / 1000);
+  const end = Math.floor(new Date(timeMax).getTime() / 1000);
 
-  console.log('Forced timestamps - start:', start, 'end:', end);
-
-  // Use production Mobilize API endpoint
+  // Use production Mobilize API endpoint, filter orgs 50-57
+  const orgIds = [50, 51, 52, 53, 54, 55, 56, 57];
   let url = 'https://api.mobilize.us/v1/events?';
+  orgIds.forEach(id => url += `organization_id=${id}&`);
   url += `timeslot_start=gte_${start}&`;
   url += `timeslot_start=lt_${end}&`;
 
   console.log('Final API URL:', url);
 
   try {
-    console.log('Making request to Mobilize API...');
     const response = await axios.get(url);
 
-    const events = (response.data.data || []).map(event => {
-      // Pick the first timeslot for display purposes
-      const timeslot = (event.timeslots && event.timeslots[0]) || {};
-      return {
-        id: event.id,
-        summary: event.title,
-        description: event.description,
-        date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
-        endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
-        image: event.featured_image_url,
-        org: event.sponsor && event.sponsor.name,
-        url: event.browser_url,
-        event_type: event.event_type,
-        source: 'mobilize'
-      };
-    });
+    // Only include events sponsored by "Pritzker Test" and timeslots in range
+    const events = (response.data.data || [])
+      .map(event => {
+        if (!(event.sponsor && event.sponsor.name === "Pritzker Test")) return null;
+        // Filter timeslots to only those in range
+        const filteredTimeslots = (event.timeslots || []).filter(ts => {
+          if (!ts.start_date) return false;
+          return ts.start_date >= start && ts.start_date < end;
+        });
+        if (filteredTimeslots.length === 0) return null;
+        // Return for each filtered timeslot
+        return filteredTimeslots.map(timeslot => ({
+          id: event.id,
+          summary: event.title,
+          description: event.description,
+          date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
+          endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
+          image: event.featured_image_url,
+          org: event.sponsor && event.sponsor.name,
+          url: event.browser_url,
+          event_type: event.event_type,
+          source: 'mobilize'
+        }));
+      })
+      .flat()
+      .filter(Boolean);
 
     res.json({ items: events });
   } catch (error) {
@@ -143,56 +158,6 @@ app.get('/api/mobilize-events', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch Mobilize events', details: error.message });
   }
 });
-
-/**
-// * Mobilize Events API Proxy (production endpoint)
-// * OLD: Used to allow custom timeMin/timeMax from query (return to later)
-// app.get('/api/mobilize-events', async (req, res) => {
-//   console.log('=== MOBILIZE API REQUEST ===');
-//   console.log('Query params:', req.query);
-//
-//   const { timeMin, timeMax } = req.query;
-//   // Convert ISO8601 to UNIX timestamp (seconds)
-//   const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
-//   const end = timeMax ? Math.floor(new Date(timeMax).getTime() / 1000) : undefined;
-//
-//   console.log('Converted timestamps - start:', start, 'end:', end);
-//
-//   // Use production Mobilize API endpoint
-//   let url = 'https://api.mobilize.us/v1/events?';
-//   if (start) url += `timeslot_start=gte_${start}&`;
-//   if (end) url += `timeslot_start=lt_${end}&`;
-//
-//   console.log('Final API URL:', url);
-//
-//   try {
-//     console.log('Making request to Mobilize API...');
-//     const response = await axios.get(url);
-//
-//     const events = (response.data.data || []).map(event => {
-//       // Pick the first timeslot for display purposes
-//       const timeslot = (event.timeslots && event.timeslots[0]) || {};
-//       return {
-//         id: event.id,
-//         summary: event.title,
-//         description: event.description,
-//         date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
-//         endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
-//         image: event.featured_image_url,
-//         org: event.sponsor && event.sponsor.name,
-//         url: event.browser_url,
-//         event_type: event.event_type,
-//         source: 'mobilize'
-//       };
-//     });
-//
-//     res.json({ items: events });
-//   } catch (error) {
-//     console.error('Error fetching Mobilize events:', error.message);
-//     res.status(500).json({ error: 'Failed to fetch Mobilize events', details: error.message });
-//   }
-// });
-*/
 
 /**
  * Google Calendar API Proxy (production)
@@ -248,9 +213,7 @@ app.get('/api/all-events', async (req, res) => {
 
     // Fetch from both APIs in parallel - use internal function calls for efficiency
     const [mobilizeResponse, googleResponse] = await Promise.all([
-      // Call the Mobilize API proxy
       axios.get(`${req.protocol}://${req.get('host')}/api/mobilize-events`, { params: { timeMin, timeMax } }),
-      // Call the Google Calendar API proxy
       axios.get(`${req.protocol}://${req.get('host')}/api/google-calendar`, { params: { timeMin, timeMax } })
     ]);
 
@@ -275,47 +238,6 @@ app.get('/api/all-events', async (req, res) => {
   } catch (error) {
     console.error('Error fetching combined events:', error.message);
     res.status(500).json({ error: 'Failed to fetch combined events', details: error.message });
-  }
-});
-
-/**
- * Google Calendar API
- * This is the same as /api/google-calendar but returns native Google response.
- */
-app.get('/api/calendar', async (req, res) => {
-  const apiKey = process.env.GOOGLECALENDAR_API_KEY;
-  const calendarId = '889b58a5eb5476990c478facc6e406cf64ca2d7ff73473cfa4b24f435b895d00@group.calendar.google.com';
-
-  let { timeMin, timeMax } = req.query;
-  if (!timeMin || !timeMax) {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-    timeMin = startOfMonth.toISOString();
-    timeMax = endOfMonth.toISOString();
-  }
-
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
-  try {
-    const response = await axios.get(url, {
-      params: {
-        key: apiKey,
-        timeMin,
-        timeMax,
-        singleEvents: true,
-        orderBy: 'startTime',
-      },
-    });
-    res.json(response.data);
-  } catch (error) {
-    if (error.response) {
-      console.error('Error fetching calendar events:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.error('No response from Google Calendar API:', error.request);
-    } else {
-      console.error('Error setting up request to Google Calendar API:', error.message);
-    }
-    res.status(500).json({ error: 'Failed to fetch events' });
   }
 });
 

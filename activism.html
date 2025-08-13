@@ -71,32 +71,6 @@
     .carousel-dot.active {
       background: #007bff;
     }
-    
-    .carousel-pause {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 14px;
-      border-radius: 5px;
-      transition: background 0.3s ease;
-    }
-    
-    .carousel-pause:hover {
-      background: rgba(0,0,0,0.8);
-    }
-    
-    .carousel-pause.paused {
-      background: rgba(220, 53, 69, 0.8);
-    }
-    
-    .carousel-pause.paused:hover {
-      background: rgba(220, 53, 69, 1);
-    }
   </style>
 </head>
 <body>
@@ -125,7 +99,6 @@
       
       <button class="carousel-nav carousel-prev" onclick="moveCarousel(-1)">❮</button>
       <button class="carousel-nav carousel-next" onclick="moveCarousel(1)">❯</button>
-      <button class="carousel-pause" id="pauseBtn" onclick="togglePause()">⏸️</button>
       
       <div class="carousel-dots">
         <span class="carousel-dot active" onclick="currentSlide(1)"></span>
@@ -140,11 +113,8 @@
   
   <script>
     let currentIndex = 0;
-    let isPlaying = true;
-    let intervalId;
     const images = document.querySelectorAll('.carousel-image');
     const dots = document.querySelectorAll('.carousel-dot');
-    const pauseBtn = document.getElementById('pauseBtn');
     const totalImages = images.length;
     
     function showSlide(index) {
@@ -171,39 +141,8 @@
       showSlide(index - 1);
     }
     
-    function startAutoAdvance() {
-      if (intervalId) clearInterval(intervalId);
-      intervalId = setInterval(() => {
-        moveCarousel(1);
-      }, 5000);
-    }
-    
-    function stopAutoAdvance() {
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    }
-    
-    function togglePause() {
-      isPlaying = !isPlaying;
-      
-      if (isPlaying) {
-        startAutoAdvance();
-        pauseBtn.innerHTML = '⏸️';
-        pauseBtn.classList.remove('paused');
-        pauseBtn.title = 'Pause';
-      } else {
-        stopAutoAdvance();
-        pauseBtn.innerHTML = '▶️';
-        pauseBtn.classList.add('paused');
-        pauseBtn.title = 'Play';
-      }
-    }
-    
     // Initialize carousel
     showSlide(0);
-    startAutoAdvance();
   </script>
 </body>
 </html>
