@@ -120,6 +120,7 @@
         <img src="assets/1000014845.png" alt="Activism Image 3" class="carousel-image">
         <img src="assets/1000014846.png" alt="Activism Image 4" class="carousel-image">
         <img src="assets/1000014847.png" alt="Activism Image 5" class="carousel-image">
+        <img src="assets/1000014848.png" alt="Activism Image 6" class="carousel-image">
       </div>
       
       <button class="carousel-nav carousel-prev" onclick="moveCarousel(-1)">❮</button>
@@ -132,6 +133,7 @@
         <span class="carousel-dot" onclick="currentSlide(3)"></span>
         <span class="carousel-dot" onclick="currentSlide(4)"></span>
         <span class="carousel-dot" onclick="currentSlide(5)"></span>
+        <span class="carousel-dot" onclick="currentSlide(6)"></span>
       </div>
     </div>
   </main>
@@ -146,6 +148,7 @@
     const totalImages = images.length;
     
     function showSlide(index) {
+      // Ensure index is within bounds
       if (index >= totalImages) currentIndex = 0;
       else if (index < 0) currentIndex = totalImages - 1;
       else currentIndex = index;
