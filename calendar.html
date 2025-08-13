@@ -130,10 +130,83 @@
       }
     }
 
-    // The rest of your calendar rendering, event popover, disclaimer, and navigation code remains unchanged.
-    // (You can copy it directly from your previous file.)
+    // --- Calendar Rendering Logic ---
+    function renderCalendar() {
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
 
-    // ... (calendar rendering and event popover functions here) ...
+      // Update month label
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"];
+      document.getElementById('current-cal-month').value = `${monthNames[month]} ${year}`;
+
+      // Get first day of month and number of days
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Clear existing calendar
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+
+      // Add empty cells for days before month starts
+      for (let i = 0; i < firstDay; i++) {
+        const cell = document.createElement('div');
+        cell.style.cssText = 'background: #f9f9f9; padding: 10px; min-height: 60px; border: 1px solid #eee;';
+        grid.appendChild(cell);
+      }
+
+      // Add days of month
+      const today = new Date();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement('div');
+        const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+
+        // Check if this day has events
+        const dateKey = `${year}-${month}-${day}`;
+        const dayEvents = calendarEvents[dateKey] || [];
+        const hasEvents = dayEvents.length > 0;
+
+        let cellStyle = 'background: #fff; padding: 10px; min-height: 60px; border: 1px solid #eee; position: relative;';
+        if (isToday) {
+          cellStyle += ' background: #e3f2fd; font-weight: bold;';
+        }
+        if (hasEvents) {
+          cellStyle += ' cursor: pointer;';
+        }
+        cell.style.cssText = cellStyle;
+
+        let cellHTML = `<div style="font-weight: ${isToday ? 'bold' : 'normal'};">${day}</div>`;
+
+        // Add event indicators
+        if (hasEvents) {
+          cellHTML += `<div style="position: absolute; bottom: 4px; left: 4px; right: 4px;">`;
+          for (let i = 0; i < Math.min(3, dayEvents.length); i++) {
+            const event = dayEvents[i];
+            const eventTitle = event.title || 'Event';
+            const shortTitle = eventTitle.length > 12 ? eventTitle.substring(0, 12) + '...' : eventTitle;
+            cellHTML += `<div style="font-size: 9px; background: #1976d2; color: white; padding: 1px 3px; margin: 1px 0; border-radius: 2px; overflow: hidden;">${shortTitle}</div>`;
+          }
+          if (dayEvents.length > 3) {
+            cellHTML += `<div style="font-size: 10px; color: #1976d2; font-weight: bold;">+${dayEvents.length - 3}</div>`;
+          }
+          cellHTML += `</div>`;
+          cellHTML += `<div style="font-size: 10px; color: #666; margin-top: 2px;">${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''}</div>`;
+        }
+
+        cell.innerHTML = cellHTML;
+
+        // Add click handler for days with events
+        if (hasEvents) {
+          cell.addEventListener('click', function() {
+            showEventDetails(dayEvents, day, month, year);
+          });
+        }
+
+        grid.appendChild(cell);
+      }
+    }
+
+    // --- The rest of your code (event popover, disclaimer, navigation, etc.) unchanged ---
 
     document.getElementById('prev-cal-month').addEventListener('click', function() {
       currentCalDate.setMonth(currentCalDate.getMonth() - 1);
@@ -145,7 +218,6 @@
       fetchEventsForCalendar();
     });
 
-    // ... (month/year input handling, disclaimer popover, event details popover, etc.) ...
 
     // Initialize calendar with events
     fetchEventsForCalendar();
