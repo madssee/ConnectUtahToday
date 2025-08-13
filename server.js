@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt');
 const app = express();
 
 app.use(cors());
-app.use(express.static('public')); // Use 'public' as in production
+app.use(express.static('public'));
 app.use(express.json());
 
 // Health check endpoint
@@ -30,7 +30,6 @@ pool.on('error', (err) => {
 app.post('/api/org-signin', async (req, res) => {
   const { password } = req.body;
   try {
-    // Fetch hashed password from your password table
     const result = await pool.query('SELECT password_hash FROM password LIMIT 1');
     if (result.rows.length === 0) {
       return res.status(500).json({ success: false, message: 'No password set' });
@@ -97,45 +96,33 @@ app.post('/api/opportunities', async (req, res) => {
 
 /**
  * Mobilize Events API Proxy (production endpoint)
- * Updated to return only events sponsored by "Pritzker Test" from org ids 50-57, and with timeslots in the requested range.
+ * CHANGE TO PRODUCTION
  */
-app.get('/api/mobilize-events', async (req, res) => {
-  console.log('=== MOBILIZE API REQUEST ===');
-  console.log('Query params:', req.query);
-
-  // Get timeMin/timeMax from query, fallback to August 2025 if missing
-  let { timeMin, timeMax } = req.query;
+async function fetchMobilizeEvents(reqQuery) {
+  let { timeMin, timeMax } = reqQuery;
   if (!timeMin || !timeMax) {
     // Default to August 2025
     timeMin = '2025-08-01T00:00:00Z';
     timeMax = '2025-09-01T00:00:00Z';
   }
-  const start = Math.floor(new Date(timeMin).getTime() / 1000);
-  const end = Math.floor(new Date(timeMax).getTime() / 1000);
-
-  // Use production Mobilize API endpoint, filter orgs 50-57
   const orgIds = [50, 51, 52, 53, 54, 55, 56, 57];
-  let url = 'https://api.mobilize.us/v1/events?';
+  let url = 'https://staging-api.mobilize.us/v1/events?';
   orgIds.forEach(id => url += `organization_id=${id}&`);
-  url += `timeslot_start=gte_${start}&`;
-  url += `timeslot_start=lt_${end}&`;
-
-  console.log('Final API URL:', url);
+  url += `timeslot_start=gte_${encodeURIComponent(timeMin)}&`;
+  url += `timeslot_start=lt_${encodeURIComponent(timeMax)}&`;
 
   try {
     const response = await axios.get(url);
-
-    // Only include events sponsored by "Pritzker Test" and timeslots in range
     const events = (response.data.data || [])
       .map(event => {
         if (!(event.sponsor && event.sponsor.name === "Pritzker Test")) return null;
-        // Filter timeslots to only those in range
         const filteredTimeslots = (event.timeslots || []).filter(ts => {
           if (!ts.start_date) return false;
-          return ts.start_date >= start && ts.start_date < end;
+          const startUnix = Math.floor(new Date(timeMin).getTime() / 1000);
+          const endUnix = Math.floor(new Date(timeMax).getTime() / 1000);
+          return ts.start_date >= startUnix && ts.start_date < endUnix;
         });
         if (filteredTimeslots.length === 0) return null;
-        // Return for each filtered timeslot
         return filteredTimeslots.map(timeslot => ({
           id: event.id,
           summary: event.title,
@@ -152,27 +139,24 @@ app.get('/api/mobilize-events', async (req, res) => {
       .flat()
       .filter(Boolean);
 
-    res.json({ items: events });
+    return { items: events };
   } catch (error) {
     console.error('Error fetching Mobilize events:', error.message);
-    res.status(500).json({ error: 'Failed to fetch Mobilize events', details: error.message });
+    return { items: [] };
   }
-});
+}
 
 /**
  * Google Calendar API Proxy (production)
  */
-app.get('/api/google-calendar', async (req, res) => {
-  console.log('=== GOOGLE CALENDAR API REQUEST ===');
-  console.log('Query params:', req.query);
-  
-  const { timeMin, timeMax } = req.query;
+async function fetchGoogleCalendarEvents(reqQuery) {
+  const { timeMin, timeMax } = reqQuery;
   const calendarId = '889b58a5eb5476990c478facc6e406cf64ca2d7ff73473cfa4b24f435b895d00@group.calendar.google.com';
-  const apiKey = process.env.GOOGLECALENDAR_API_KEY; // Must be set in .env
+  const apiKey = process.env.GOOGLECALENDAR_API_KEY;
 
   if (!apiKey) {
     console.log('Google Calendar API key not found in environment variables');
-    return res.status(500).json({ error: 'Google Calendar API key not configured' });
+    return { items: [] };
   }
 
   let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}`;
@@ -196,36 +180,47 @@ app.get('/api/google-calendar', async (req, res) => {
       source: 'google'
     }));
 
-    res.json({ items: events });
+    return { items: events };
   } catch (error) {
     console.error('Error fetching Google Calendar events:', error.message);
-    res.status(500).json({ error: 'Failed to fetch Google Calendar events', details: error.message });
+    return { items: [] };
   }
+}
+
+/**
+ * Mobilize Events API Proxy Endpoint
+ */
+app.get('/api/mobilize-events', async (req, res) => {
+  const result = await fetchMobilizeEvents(req.query);
+  res.json(result);
+});
+
+/**
+ * Google Calendar API Proxy Endpoint
+ */
+app.get('/api/google-calendar', async (req, res) => {
+  const result = await fetchGoogleCalendarEvents(req.query);
+  res.json(result);
 });
 
 /**
  * Combined Events API (aggregates Mobilize and Google Calendar events)
+ * Uses internal function calls!
  */
 app.get('/api/all-events', async (req, res) => {
   console.log('=== COMBINED EVENTS REQUEST ===');
   try {
     const { timeMin, timeMax } = req.query;
 
-    // Fetch from both APIs in parallel - use internal function calls for efficiency
-    const [mobilizeResponse, googleResponse] = await Promise.all([
-      axios.get(`${req.protocol}://${req.get('host')}/api/mobilize-events`, { params: { timeMin, timeMax } }),
-      axios.get(`${req.protocol}://${req.get('host')}/api/google-calendar`, { params: { timeMin, timeMax } })
+    // Fetch from both APIs in parallel using internal functions
+    const [mobilizeResult, googleResult] = await Promise.all([
+      fetchMobilizeEvents({ timeMin, timeMax }),
+      fetchGoogleCalendarEvents({ timeMin, timeMax })
     ]);
 
     let allEvents = [];
-    // Add mobilize events if successful
-    if (mobilizeResponse && mobilizeResponse.data && mobilizeResponse.data.items) {
-      allEvents = allEvents.concat(mobilizeResponse.data.items);
-    }
-    // Add google events if successful
-    if (googleResponse && googleResponse.data && googleResponse.data.items) {
-      allEvents = allEvents.concat(googleResponse.data.items);
-    }
+    allEvents = allEvents.concat(mobilizeResult.items || []);
+    allEvents = allEvents.concat(googleResult.items || []);
 
     // Sort all events by date
     allEvents.sort((a, b) => {
