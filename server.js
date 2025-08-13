@@ -101,9 +101,9 @@ app.post('/api/opportunities', async (req, res) => {
 async function fetchMobilizeEvents(reqQuery) {
   let { timeMin, timeMax } = reqQuery;
   if (!timeMin || !timeMax) {
-    // Default to August 2025
-    timeMin = '2025-08-01T00:00:00Z';
-    timeMax = '2025-09-01T00:00:00Z';
+    // Default to December 1, 2017 - October 1, 2025
+    timeMin = '2017-12-01T00:00:00Z';
+    timeMax = '2025-10-01T00:00:00Z';
   }
   const orgIds = [50, 51, 52, 53, 54, 55, 56, 57];
   let url = 'https://staging-api.mobilize.us/v1/events?';
