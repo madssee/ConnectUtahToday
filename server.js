@@ -114,6 +114,7 @@ async function fetchMobilizeEvents(reqQuery) {
   url += `timeslot_start=lt_${end}&`;
   try {
     const response = await axios.get(url);
+    console.log(response.data)
     const events = (response.data.data || [])
       .map(event => {
         if (!(event.sponsor && event.sponsor.name === "Pritzker Test")) return null;
