@@ -4,11 +4,105 @@
   <meta charset="UTF-8">
   <title>Activism</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .carousel-container {
+      max-width: 800px;
+      margin: 2em auto;
+      position: relative;
+      background: #f0f0f0;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .carousel-images {
+      display: flex;
+      transition: transform 0.5s ease;
+    }
+    
+    .carousel-image {
+      min-width: 100%;
+      height: 400px;
+      object-fit: contain;
+    }
+    
+    .carousel-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 18px;
+      border-radius: 5px;
+    }
+    
+    .carousel-nav:hover {
+      background: rgba(0,0,0,0.7);
+    }
+    
+    .carousel-prev {
+      left: 10px;
+    }
+    
+    .carousel-next {
+      right: 10px;
+    }
+    
+    .carousel-dots {
+      text-align: center;
+      padding: 15px 0;
+      background: rgba(0,0,0,0.05);
+    }
+    
+    .carousel-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ccc;
+      margin: 0 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    
+    .carousel-dot.active {
+      background: #007bff;
+    }
+    
+    .carousel-pause {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 5px;
+      transition: background 0.3s ease;
+    }
+    
+    .carousel-pause:hover {
+      background: rgba(0,0,0,0.8);
+    }
+    
+    .carousel-pause.paused {
+      background: rgba(220, 53, 69, 0.8);
+    }
+    
+    .carousel-pause.paused:hover {
+      background: rgba(220, 53, 69, 1);
+    }
+  </style>
 </head>
 <body>
   <nav>
     <a href="index.html">Home</a> |
-    <a href="calendar.html">Calendar</a> |
+    <a href="calendar.html">Event Calendar</a> |
     <a href="events.html">Events</a> |
     <a href="volunteer.html">Volunteering</a> |
     <a href="support.html">Support a Cause</a> |
@@ -17,43 +111,96 @@
   </nav>
   <main>
     <h1>Local Activism Campaigns & Issues</h1>
-    <ul style="list-style:none; padding:0; max-width:600px; margin:2em auto;">
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em;">🌫️🌎</span>
-        <strong>Air Quality and Climate Change:</strong>
-        <div>Poor air quality, exacerbated by vehicle emissions and other pollutants, is a recurring concern, particularly during inversion periods. Activists advocate for solutions like cleaner energy, sustainable transportation, and reducing wood burning to improve the city's air quality and address climate change.</div>
-      </li>
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em;">🏠💸</span>
-        <strong>Affordable Housing and Homelessness:</strong>
-        <div>The rising cost of living and housing scarcity contribute to challenges related to affordable housing and homelessness. Activists work towards expanding affordable housing options and providing support services for those experiencing homelessness. <em>Housing Connect</em> and <em>The Road Home</em> are organizations actively involved in addressing these issues.</div>
-      </li>
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em;">⚖️🌈✊🏾</span>
-        <strong>Social and Economic Justice:</strong>
-        <div>Activists focus on promoting equal rights, racial justice, LGBTQ+ rights, and addressing disparities within the community. Organizations like the <a href="https://betterutah.org/" target="_blank">Alliance for a Better Utah</a> and <a href="https://www.acluutah.org/issues/indigenous-justice/" target="_blank">the ACLU of Utah</a> champion these causes.</div>
-      </li>
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em; font-weight:bold; color:#c00;">U🌄</span>
-        <strong>Indigenous Rights:</strong>
-        <div>Protecting tribal sovereignty, land rights, and cultural heritage, as well as addressing issues like marginalization, poverty, and violence faced by Indigenous Peoples, are important local concerns.</div>
-      </li>
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em;">🚔✊🏾</span>
-        <strong>Police Reform:</strong>
-        <div>Following instances of police brutality, community groups and activists like <em>Utah Against Police Brutality</em>, <em>Black Lives Matter</em>, and the <em>Coalition for Police Reform</em> have advocated for policy changes and accountability within the Salt Lake City Police Department.</div>
-      </li>
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em;">📚🌱</span>
-        <strong>Education Reform:</strong>
-        <div>There is also local interest in addressing education issues, including promoting mental well-being for students and advocating for equitable and student-focused educational environments. Organizations are also exploring innovative approaches like farm-to-school programs.</div>
-      </li>
-      <li style="margin-bottom:2em;">
-        <span style="font-size:2em;">♻️🗑️</span>
-        <strong>Waste & Recycling:</strong>
-        <div>Promoting sustainable waste management practices is another area of local activism.</div>
-      </li>
-    </ul>
+    
+    <!-- Image Carousel -->
+    <div class="carousel-container">
+      <div class="carousel-images" id="carouselImages">
+        <img src="assets/1000014843.png" alt="Activism Image 1" class="carousel-image">
+        <img src="assets/1000014844.png" alt="Activism Image 2" class="carousel-image">
+        <img src="assets/1000014845.png" alt="Activism Image 3" class="carousel-image">
+        <img src="assets/1000014846.png" alt="Activism Image 4" class="carousel-image">
+        <img src="assets/1000014847.png" alt="Activism Image 5" class="carousel-image">
+      </div>
+      
+      <button class="carousel-nav carousel-prev" onclick="moveCarousel(-1)">❮</button>
+      <button class="carousel-nav carousel-next" onclick="moveCarousel(1)">❯</button>
+      <button class="carousel-pause" id="pauseBtn" onclick="togglePause()">⏸️</button>
+      
+      <div class="carousel-dots">
+        <span class="carousel-dot active" onclick="currentSlide(1)"></span>
+        <span class="carousel-dot" onclick="currentSlide(2)"></span>
+        <span class="carousel-dot" onclick="currentSlide(3)"></span>
+        <span class="carousel-dot" onclick="currentSlide(4)"></span>
+        <span class="carousel-dot" onclick="currentSlide(5)"></span>
+      </div>
+    </div>
   </main>
+  
+  <script>
+    let currentIndex = 0;
+    let isPlaying = true;
+    let intervalId;
+    const images = document.querySelectorAll('.carousel-image');
+    const dots = document.querySelectorAll('.carousel-dot');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const totalImages = images.length;
+    
+    function showSlide(index) {
+      if (index >= totalImages) currentIndex = 0;
+      else if (index < 0) currentIndex = totalImages - 1;
+      else currentIndex = index;
+      
+      // Move carousel
+      const carouselImages = document.getElementById('carouselImages');
+      carouselImages.style.transform = `translateX(-${currentIndex * 100}%)`;
+      
+      // Update dots
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentIndex);
+      });
+    }
+    
+    function moveCarousel(direction) {
+      showSlide(currentIndex + direction);
+    }
+    
+    function currentSlide(index) {
+      showSlide(index - 1);
+    }
+    
+    function startAutoAdvance() {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(() => {
+        moveCarousel(1);
+      }, 5000);
+    }
+    
+    function stopAutoAdvance() {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }
+    
+    function togglePause() {
+      isPlaying = !isPlaying;
+      
+      if (isPlaying) {
+        startAutoAdvance();
+        pauseBtn.innerHTML = '⏸️';
+        pauseBtn.classList.remove('paused');
+        pauseBtn.title = 'Pause';
+      } else {
+        stopAutoAdvance();
+        pauseBtn.innerHTML = '▶️';
+        pauseBtn.classList.add('paused');
+        pauseBtn.title = 'Play';
+      }
+    }
+    
+    // Initialize carousel
+    showSlide(0);
+    startAutoAdvance();
+  </script>
 </body>
 </html>
