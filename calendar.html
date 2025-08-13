@@ -89,9 +89,9 @@
     try {
       const year = currentCalDate.getFullYear();
       const month = currentCalDate.getMonth();
-      const timeMin = `${year}-${String(month+1).padStart(2, '0')}-01T00:00:00Z`;
+      const timeMin = '2017-12-01T00:00:00Z';
       const lastDay = new Date(year, month+1, 0).getDate();
-      const timeMax = `${year}-${String(month+1).padStart(2, '0')}-${lastDay}T23:59:59Z`;
+      const timeMax = '2025-10-01T00:00:00Z';
 
       // Use your actual API base here in prod if needed
       const response = await fetch(`${API_BASE}/api/all-events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
