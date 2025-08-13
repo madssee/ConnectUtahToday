@@ -80,6 +80,11 @@
   let currentCalDate = new Date();
   let calendarEvents = {};
 
+  const API_BASE =
+    window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://connectutahtoday-1.onrender.com';
+
   async function fetchEventsForCalendar() {
     try {
       const year = currentCalDate.getFullYear();
@@ -89,7 +94,7 @@
       const timeMax = `${year}-${String(month+1).padStart(2, '0')}-${lastDay}T23:59:59Z`;
 
       // Use your actual API base here in prod if needed
-      const response = await fetch(`/api/all-events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
+      const response = await fetch(`${API_BASE}/api/all-events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
       const data = await response.json();
       const events = data.items || [];
       
