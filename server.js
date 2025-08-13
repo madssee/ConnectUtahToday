@@ -7,7 +7,8 @@ const bcrypt = require('bcrypt');
 const app = express();
 
 app.use(cors());
-app.use(express.static('public'));
+//app.use(express.static('public'));
+app.use(express.static('.'));
 app.use(express.json());
 
 // Health check endpoint
@@ -112,17 +113,16 @@ async function fetchMobilizeEvents(reqQuery) {
   orgIds.forEach(id => url += `organization_id=${id}&`);
   url += `timeslot_start=gte_${start}&`;
   url += `timeslot_start=lt_${end}&`;
+
   try {
     const response = await axios.get(url);
-    console.log(response.data)
+    console.log(response.data); // Log the raw response for debugging
     const events = (response.data.data || [])
       .map(event => {
-        if (!(event.sponsor && event.sponsor.name === "Pritzker Test")) return null;
+        // Filter timeslots in the requested range
         const filteredTimeslots = (event.timeslots || []).filter(ts => {
           if (!ts.start_date) return false;
-          const startUnix = Math.floor(new Date(timeMin).getTime() / 1000);
-          const endUnix = Math.floor(new Date(timeMax).getTime() / 1000);
-          return ts.start_date >= startUnix && ts.start_date < endUnix;
+          return ts.start_date >= start && ts.start_date < end;
         });
         if (filteredTimeslots.length === 0) return null;
         return filteredTimeslots.map(timeslot => ({
