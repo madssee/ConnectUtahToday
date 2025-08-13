@@ -100,54 +100,50 @@ app.post('/api/opportunities', async (req, res) => {
  * CHANGE TO PRODUCTION
  */
 async function fetchMobilizeEvents(reqQuery) {
-  let { timeMin, timeMax } = reqQuery;
-  if (!timeMin || !timeMax) {
-    timeMin = '2017-12-01T00:00:00Z';
-    timeMax = '2025-10-01T00:00:00Z';
-  }
-  const start = Math.floor(new Date(timeMin).getTime() / 1000);
-  const end = Math.floor(new Date(timeMax).getTime() / 1000);
+  const { timeMin, timeMax } = reqQuery;
+  const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
+  const end = timeMax ? Math.floor(new Date(timeMax).getTime() / 1000) : undefined;
 
+  // Filter events by org ids 50 - 57 (for "Pritzker Test" and related orgs) REPLACE /W ACTUAL ORGS
   const orgIds = [50, 51, 52, 53, 54, 55, 56, 57];
   let url = 'https://staging-api.mobilize.us/v1/events?';
-  orgIds.forEach(id => url += `organization_id=${id}&`);
-  url += `timeslot_start=gte_${start}&`;
-  url += `timeslot_start=lt_${end}&`;
+  // Add all org ids as params
+  orgIds.forEach(id => {
+    url += `organization_id=${id}&`;
+  });
+  if (start) url += `timeslot_start=gte_${start}&`;
+  if (end) url += `timeslot_start=lt_${end}&`;
 
-  try {
-    const response = await axios.get(url);
-    console.log(response.data); // Log the raw response for debugging
-    const events = (response.data.data || [])
-      .map(event => {
-        // Filter timeslots in the requested range
-        const filteredTimeslots = (event.timeslots || []).filter(ts => {
-          if (!ts.start_date) return false;
-          return ts.start_date >= start && ts.start_date < end;
-        });
-        if (filteredTimeslots.length === 0) return null;
-        return filteredTimeslots.map(timeslot => ({
-          id: event.id,
-          summary: event.title,
-          description: event.description,
-          date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
-          endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
-          image: event.featured_image_url,
-          org: event.sponsor && event.sponsor.name,
-          url: event.browser_url,
-          event_type: event.event_type,
-          source: 'mobilize'
-        }));
-      })
-      .flat()
-      .filter(Boolean);
+  const response = await axios.get(url);
 
-    return { items: events };
-  } catch (error) {
-    console.error('Error fetching Mobilize events:', error.message);
-    return { items: [] };
-  }
+  // For each event, include only timeslots in range, and only return events with timeslots in range
+  const events = (response.data.data || [])
+    .map(event => {
+
+      // Filter timeslots to only those in range
+      const filteredTimeslots = (event.timeslots || []).filter(ts => {
+        if (!ts.start_date) return false;
+        return (!start || ts.start_date >= start) && (!end || ts.start_date < end);
+      });
+      if (filteredTimeslots.length === 0) return null;
+      return filteredTimeslots.map(timeslot => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
+        endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
+        featured_image_url: event.featured_image_url,
+        org: event.sponsor && event.sponsor.name,
+        url: event.browser_url,
+        event_type: event.event_type,
+        source: 'mobilize'
+      }));
+    })
+    .flat()
+    .filter(Boolean);
+
+  return { items: events };
 }
-
 /**
  * Google Calendar API Proxy (production)
  */
