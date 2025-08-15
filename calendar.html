@@ -76,7 +76,6 @@
   </div>
 
 <script>
-  // Simple Calendar Logic - same as local
   let currentCalDate = new Date();
   let calendarEvents = {};
 
@@ -86,43 +85,48 @@
       : 'https://connectutahtoday-1.onrender.com';
 
   async function fetchEventsForCalendar() {
-  try {
-    const timeMin = encodeURIComponent('2017-01-01T00:00:00Z');
-    const timeMax = encodeURIComponent('2100-12-31T23:59:59Z');
-    const apiURL = `${API_BASE}/api/all-events?timeMin=${timeMin}&timeMax=${timeMax}`;
-    const response = await fetch(apiURL);
-    console.log("all-events time filtered", response);
+    try {
+      // dynamic filtering for currently viewed month
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0, 23, 59, 59);
+      const timeMin = encodeURIComponent(start.toISOString());
+      const timeMax = encodeURIComponent(end.toISOString());
+      const apiURL = `${API_BASE}/api/all-events?timeMin=${timeMin}&timeMax=${timeMax}`;
+      const response = await fetch(apiURL);
+      console.log("all-events time filtered", response);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    const events = data.items || [];
-    console.log("Fetched events:", events);
-
-    // Clear existing events for the month
-    calendarEvents = {};
-    
-    // Process each event
-    events.forEach(event => {
-      const eventDate = new Date(event.date);
-      if (isNaN(eventDate.getTime())) return;
-      
-      const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
-      if (!calendarEvents[dateKey]) {
-        calendarEvents[dateKey] = [];
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      calendarEvents[dateKey].push(event);
-    });
-    
-    renderCalendar();
-  } catch (error) {
-    console.error('Error fetching events for calendar:', error);
-    renderCalendar();
+
+      const data = await response.json();
+      const events = data.items || [];
+      console.log("Fetched events:", events);
+
+      // Clear existing events for the month
+      calendarEvents = {};
+
+      // Process each event
+      events.forEach(event => {
+        const eventDate = new Date(event.date);
+        if (isNaN(eventDate.getTime())) return;
+
+        const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
+        if (!calendarEvents[dateKey]) {
+          calendarEvents[dateKey] = [];
+        }
+        calendarEvents[dateKey].push(event);
+      });
+
+      renderCalendar();
+    } catch (error) {
+      console.error('Error fetching events for calendar:', error);
+      renderCalendar();
+    }
   }
-}
-  
+
   function renderCalendar() {
     const year = currentCalDate.getFullYear();
     const month = currentCalDate.getMonth();
