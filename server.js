@@ -99,6 +99,7 @@ app.post('/api/opportunities', async (req, res) => {
  * Mobilize Events API Proxy (production endpoint)
  * CHANGE TO PRODUCTION
  */
+/*
 async function fetchMobilizeEvents(reqQuery) {
   const { timeMin, timeMax } = reqQuery;
   const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
@@ -143,6 +144,7 @@ async function fetchMobilizeEvents(reqQuery) {
     return { items: [] };
   }
 }
+  */
 
 /**
  * Google Calendar API Proxy (production)
@@ -189,9 +191,60 @@ async function fetchGoogleCalendarEvents(reqQuery) {
  * Mobilize Events API Proxy Endpoint
  */
 app.get('/api/mobilize-events', async (req, res) => {
-  const result = await fetchMobilizeEvents(req.query);
-  console.log("mobilize events fetched", result);
-  res.json(result);
+  console.log('=== MOBILIZE API REQUEST ===');
+  console.log('Query params:', req.query);
+  
+  const { timeMin, timeMax } = req.query;
+  // Convert ISO8601 to UNIX timestamp (seconds)
+  const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
+  const end = timeMax ? Math.floor(new Date(timeMax).getTime() / 1000) : undefined;
+  
+  console.log('Converted timestamps - start:', start, 'end:', end);
+
+  // Use production or staging API based on environment
+  const mobilizeApiBase = process.env.NODE_ENV === 'production' 
+    ? 'https://api.mobilize.us' 
+    : 'https://staging-api.mobilize.us/v1/events?';
+  
+  let url = `${mobilizeApiBase}/v1/events?`;
+  if (start) url += `timeslot_start=gte_${start}&`;
+  if (end) url += `timeslot_start=lt_${end}&`;
+  
+  console.log('Final API URL:', url);
+
+  try {
+    console.log(`Making request to Mobilize ${process.env.NODE_ENV === 'production' ? 'production' : 'staging'} API...`);
+    const response = await axios.get(url);
+    console.log('Response status:', response.status);
+    console.log('Response data length:', response.data?.data?.length || 0);
+    
+    // Normalize events to a simpler structure for the frontend
+    const events = (response.data.data || []).map(event => {
+      // Pick the first timeslot for display purposes
+      const timeslot = (event.timeslots && event.timeslots[0]) || {};
+      return {
+        id: event.id,
+        summary: event.title,
+        description: event.description,
+        date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
+        endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
+        image: event.featured_image_url,
+        org: event.sponsor && event.sponsor.name,
+        url: event.browser_url,
+        event_type: event.event_type,
+        source: 'mobilize'
+      };
+    });
+    
+    console.log('Processed events count:', events.length);
+    console.log('Sample event:', events[0] || 'No events');
+    console.log('=== MOBILIZE API SUCCESS ===');
+    res.json({ items: events });
+  } catch (error) {
+    console.error('=== MOBILIZE API ERROR ===');
+    console.error('Full error:', error);
+    res.status(500).json({ error: 'Failed to fetch Mobilize events', details: error.message });
+  }
 });
 
 /**
@@ -211,15 +264,34 @@ app.get('/api/all-events', async (req, res) => {
   try {
     const { timeMin, timeMax } = req.query;
 
-    // Fetch from both APIs in parallel using internal functions
-    const [mobilizeResult, googleResult] = await Promise.all([
-      fetchMobilizeEvents({ timeMin, timeMax }),
-      fetchGoogleCalendarEvents({ timeMin, timeMax })
+    // Use production API base for internal requests
+    const apiBase = 'https://connectutahtoday-1.onrender.com';
+
+    // Fetch from both APIs in parallel using Promise.allSettled
+    const [mobilizeResponse, googleResponse] = await Promise.allSettled([
+      axios.get(`${apiBase}/api/mobilize-events?${new URLSearchParams(req.query)}`),
+      axios.get(`${apiBase}/api/google-calendar?${new URLSearchParams(req.query)}`)
     ]);
 
     let allEvents = [];
-    allEvents = allEvents.concat(mobilizeResult.items || []);
-    allEvents = allEvents.concat(googleResult.items || []);
+
+    // Add mobilize events if successful
+    if (mobilizeResponse.status === 'fulfilled') {
+      const mobilizeEvents = mobilizeResponse.value.data.items || [];
+      allEvents = allEvents.concat(mobilizeEvents);
+      console.log('Added mobilize events:', mobilizeEvents.length);
+    } else {
+      console.log('Mobilize API failed:', mobilizeResponse.reason?.message);
+    }
+
+    // Add google events if successful
+    if (googleResponse.status === 'fulfilled') {
+      const googleEvents = googleResponse.value.data.items || [];
+      allEvents = allEvents.concat(googleEvents);
+      console.log('Added Google Calendar events:', googleEvents.length);
+    } else {
+      console.log('Google Calendar API failed:', googleResponse.reason?.message);
+    }
 
     // Sort all events by date
     allEvents.sort((a, b) => {
@@ -228,9 +300,13 @@ app.get('/api/all-events', async (req, res) => {
       return dateA - dateB;
     });
 
+    console.log('Total combined events:', allEvents.length);
+    console.log('=== COMBINED EVENTS SUCCESS ===');
     res.json({ items: allEvents });
   } catch (error) {
-    console.error('Error fetching combined events:', error.message);
+    console.error('=== COMBINED EVENTS ERROR ===');
+    console.error('Error:', error);
+    console.error('=== END ERROR ===');
     res.status(500).json({ error: 'Failed to fetch combined events', details: error.message });
   }
 });

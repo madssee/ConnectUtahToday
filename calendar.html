@@ -86,39 +86,54 @@
       : 'https://connectutahtoday-1.onrender.com';
 
   async function fetchEventsForCalendar() {
-    try {
-      const year = currentCalDate.getFullYear();
-      const month = currentCalDate.getMonth();
-      const timeMin = '2017-12-01T00:00:00Z';
-      const lastDay = new Date(year, month+1, 0).getDate();
-      const timeMax = '2025-10-01T00:00:00Z';
+  try {
+    // dynamic filtering
+      // const year = currentCalDate.getFullYear();
+      // const month = currentCalDate.getMonth();
+      // const start = new Date(year, month, 1);
+      // const end = new Date(year, month + 1, 0, 23, 59, 59);
+      // const timeMin = encodeURIComponent(start.toISOString());
+      // const timeMax = encodeURIComponent(end.toISOString());
+      
+      // hard coded
+      //const timeMin = '2017-12-01T00:00:00Z';
+      //const lastDay = new Date(year, month+1, 0).getDate();
+      //const timeMax = '2025-10-01T00:00:00Z';
 
-      // Use your actual API base here in prod if needed
-      const response = await fetch(`${API_BASE}/api/all-events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
-      const data = await response.json();
-      const events = data.items || [];
-      
-      // Clear existing events for the month
-      calendarEvents = {};
-      
-      // Process each event
-      events.forEach(event => {
-        const eventDate = new Date(event.date);
-        if (isNaN(eventDate.getTime())) return;
-        
-        const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
-        if (!calendarEvents[dateKey]) {
-          calendarEvents[dateKey] = [];
-        }
-        calendarEvents[dateKey].push(event);
-      });
-      
-      renderCalendar();
-    } catch (error) {
-      console.error('Error fetching events for calendar:', error);
-      renderCalendar();
+      //const response = await fetch(`${API_BASE}/api/all-events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
+
+    // Fetch all events from both Mobilize and Google Calendar
+    const apiURL = `${API_BASE}/api/all-events`;
+    const response = await fetch(apiURL);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
+    
+    const data = await response.json();
+    const events = data.items || [];
+    
+    // Clear existing events for the month
+    calendarEvents = {};
+    
+    // Process each event
+    events.forEach(event => {
+      const eventDate = new Date(event.date);
+      if (isNaN(eventDate.getTime())) return;
+      
+      const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
+      if (!calendarEvents[dateKey]) {
+        calendarEvents[dateKey] = [];
+      }
+      calendarEvents[dateKey].push(event);
+    });
+    
+    renderCalendar();
+  } catch (error) {
+    console.error('Error fetching events for calendar:', error);
+    renderCalendar();
   }
+}
   
   function renderCalendar() {
     const year = currentCalDate.getFullYear();
