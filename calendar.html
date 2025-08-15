@@ -87,32 +87,20 @@
 
   async function fetchEventsForCalendar() {
   try {
-    // dynamic filtering
-      // const year = currentCalDate.getFullYear();
-      // const month = currentCalDate.getMonth();
-      // const start = new Date(year, month, 1);
-      // const end = new Date(year, month + 1, 0, 23, 59, 59);
-      // const timeMin = encodeURIComponent(start.toISOString());
-      // const timeMax = encodeURIComponent(end.toISOString());
-      
-      // hard coded
-      //const timeMin = '2017-12-01T00:00:00Z';
-      //const lastDay = new Date(year, month+1, 0).getDate();
-      //const timeMax = '2025-10-01T00:00:00Z';
-
-      //const response = await fetch(`${API_BASE}/api/all-events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`);
-
-    // Fetch all events from both Mobilize and Google Calendar
-    const apiURL = `${API_BASE}/api/all-events`;
+    const timeMin = encodeURIComponent('2017-01-01T00:00:00Z');
+    const timeMax = encodeURIComponent('2100-12-31T23:59:59Z');
+    const apiURL = `${API_BASE}/api/all-events?timeMin=${timeMin}&timeMax=${timeMax}`;
     const response = await fetch(apiURL);
-    
+    console.log("all-events time filtered", response);
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const data = await response.json();
     const events = data.items || [];
-    
+    console.log("Fetched events:", events);
+
     // Clear existing events for the month
     calendarEvents = {};
     
