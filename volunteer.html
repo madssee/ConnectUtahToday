@@ -104,11 +104,75 @@
   <script>
     // ---- Utility: Org Name to Asset Normalization ----
     function orgNameToAsset(orgName) {
-      return orgName.toLowerCase().replace(/\s+/g, '_');
+      return orgName.toLowerCase().replace(/[^a-z0-9]/g, '_');
     }
-    function getOrgImg(orgName) {
-      return `assets/${orgNameToAsset(orgName)}.png`;
+    // List of available assets (update if new assets are added)
+    // This should reflect the current assets in your /assets folder
+const assetFiles = [
+  '1000014843.png',
+  '1000014844.png',
+  '1000014845.png',
+  '1000014846.png',
+  '1000014847.png',
+  '1000014848.png',
+  'bakers_for_palestine.jpg',
+  'bakers_for_palestine.png',
+  'brown_berets.png',
+  'Cache Valley Mutual Aid.jpg',
+  'Comunidades Unidas.jpg',
+  'CUT.png',
+  'description.png',
+  'dsa.jpg',
+  'dsa.png',
+  'Green Wave Utah.jpg',
+  'indivisible.png',
+  'Ken_Sanders_Rare_Books.jpg',
+  'MyUEA.jpg',
+  'placeholder.jpg',
+  'Salt Lake Harm Reduction Project.jpg',
+  'Sierra Club Utah.jpg',
+  'SLCounty Community Exchange.jpg',
+  'slc_mutual_aid.png',
+  'uhwunited.jpg',
+  'United_Mountain_Workers.jpg',
+  'Urban Indian Center of Salt Lake.jpg',
+  'Utah State Progressive Caucus.jpg',
+  'WildUtah.png',
+];
+function normalize(name) {
+    // Lowercase, replace non-alphanumeric with _, collapse multiple _, trim _.
+    return name
+      .toLowerCase()
+      .replace(/[\s\-]+/g, '_')      // spaces/hyphens to underscore
+      .replace(/[^a-z0-9_]/g, '')    // remove all except a-z, 0-9, _
+      .replace(/_+/g, '_')           // collapse multiple _
+      .replace(/^_+|_+$/g, '');      // trim leading/trailing _
+  }
+
+  // Find best matching asset for org name
+  function getOrgImg(orgName) {
+    const nOrg = normalize(orgName);
+
+    // Create normalized map of asset file stem => filename
+    const assetMap = {};
+    assetFiles.forEach(f => {
+      let stem = f.replace(/\.[^/.]+$/, ''); // Remove extension
+      assetMap[normalize(stem)] = f;
+    });
+
+    // Direct match
+    if (assetMap[nOrg]) {
+      return `assets/${assetMap[nOrg]}`;
     }
+    // Fuzzy matches
+    for (let [nAsset, fname] of Object.entries(assetMap)) {
+      if (nOrg.includes(nAsset) || nAsset.includes(nOrg)) {
+        return `assets/${fname}`;
+      }
+    }
+    // Fallback placeholder
+    return 'assets/description_placeholder.png';
+  }
 
     // ---- State ----
     let allOrganizations = [];
