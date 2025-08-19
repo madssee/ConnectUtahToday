@@ -17,6 +17,26 @@
   </nav>
 <main>
   <h1>Event Calendar</h1>
+
+  <!-- Filter UI -->
+  <form id="calendar-filter-form" style="display:flex;gap:2em;align-items:center;margin:1em 0 2em 0;flex-wrap:wrap;">
+    <label>
+      <span style="font-weight:500;font-size:1em;margin-right:0.5em;">Organization:</span>
+      <select id="filter-org" style="padding:0.4em 1em;border:1.5px solid #dee2e6;border-radius:6px;min-width:120px;">
+        <option value="">Any</option>
+        <!-- orgs options will be dynamically populated -->
+      </select>
+    </label>
+    <label>
+      <span style="font-weight:500;font-size:1em;margin-right:0.5em;">Date Range:</span>
+      <input type="date" id="filter-date-start" style="padding:0.4em 0.5em;border:1.5px solid #dee2e6;border-radius:6px;">
+      -
+      <input type="date" id="filter-date-end" style="padding:0.4em 0.5em;border:1.5px solid #dee2e6;border-radius:6px;">
+    </label>
+    <button type="submit" style="padding:0.5em 1.3em;background:#28a745;color:white;border:none;border-radius:6px;font-weight:500;cursor:pointer;">Apply Filter</button>
+    <button type="button" id="clear-calendar-filter" style="padding:0.5em 1em; background:#f8f9fa; color:#495057; border:1px solid #dee2e6; border-radius:6px; font-weight:500; cursor:pointer;">Clear</button>
+  </form>
+
   <div style="text-align:left; margin: 1.5em 0 0.5em 0;">
     <a href="#" id="calendar-disclaimer-link" style="font-size:0.92em;text-decoration:underline;cursor:pointer;">Disclaimer</a>
   </div>
@@ -77,53 +97,99 @@
 <script>
   let currentCalDate = new Date();
   let calendarEvents = {};
+  let allFetchedEvents = [];
+  let orgOptionsSet = new Set();
+
+  // Filter state
+  let filterOrg = '';
+  let filterDateStart = '';
+  let filterDateEnd = '';
 
   const API_BASE =
     window.location.hostname === 'localhost'
       ? 'http://localhost:3000'
       : 'https://connectutahtoday-1.onrender.com';
 
+  // Populates the org dropdown based on events in allFetchedEvents
+  function populateOrgDropdown() {
+    const select = document.getElementById('filter-org');
+    const selectedValue = select.value;
+    // Get all orgs from events
+    orgOptionsSet = new Set();
+    allFetchedEvents.forEach(ev => {
+      if (ev.org && ev.org.trim()) orgOptionsSet.add(ev.org.trim());
+    });
+    // Clear existing options except "Any"
+    select.innerHTML = '<option value="">Any</option>';
+    Array.from(orgOptionsSet).sort((a, b) => a.localeCompare(b)).forEach(org => {
+      const opt = document.createElement('option');
+      opt.value = org;
+      opt.textContent = org;
+      if (org === selectedValue) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  // Fetch all events for current month (optionally filter by date range/org)
   async function fetchEventsForCalendar() {
     try {
-      // dynamic filtering for currently viewed month
-      const year = currentCalDate.getFullYear();
-      const month = currentCalDate.getMonth();
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 0, 23, 59, 59);
+      // Use either the filter date range or the month view
+      let year = currentCalDate.getFullYear();
+      let month = currentCalDate.getMonth();
+      let start, end;
+      if (filterDateStart && filterDateEnd) {
+        start = new Date(filterDateStart);
+        end = new Date(filterDateEnd);
+        end.setHours(23,59,59,999);
+      } else {
+        start = new Date(year, month, 1);
+        end = new Date(year, month + 1, 0, 23, 59, 59);
+      }
       const timeMin = encodeURIComponent(start.toISOString());
       const timeMax = encodeURIComponent(end.toISOString());
       const apiURL = `${API_BASE}/api/all-events?timeMin=${timeMin}&timeMax=${timeMax}`;
       const response = await fetch(apiURL);
-      console.log("all-events time filtered", response);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
-      const events = data.items || [];
-      console.log("Fetched events:", events);
-
-      // Clear existing events for the month
-      calendarEvents = {};
-
-      // Process each event
-      events.forEach(event => {
-        const eventDate = new Date(event.date);
-        if (isNaN(eventDate.getTime())) return;
-
-        const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
-        if (!calendarEvents[dateKey]) {
-          calendarEvents[dateKey] = [];
-        }
-        calendarEvents[dateKey].push(event);
-      });
-
-      renderCalendar();
+      allFetchedEvents = data.items || [];
+      populateOrgDropdown();
+      applyFiltersAndRender();
     } catch (error) {
       console.error('Error fetching events for calendar:', error);
-      renderCalendar();
+      allFetchedEvents = [];
+      populateOrgDropdown();
+      applyFiltersAndRender();
     }
+  }
+
+  // Filter events and re-render calendar grid
+  function applyFiltersAndRender() {
+    // Filter by org (exact match, unless "Any")
+    let filteredEvents = allFetchedEvents;
+    if (filterOrg && filterOrg !== '') {
+      filteredEvents = filteredEvents.filter(ev =>
+        (ev.org || '').trim() === filterOrg
+      );
+    }
+    // Filter by date range (if date range filter is set)
+    if (filterDateStart && filterDateEnd) {
+      const dateStart = new Date(filterDateStart);
+      const dateEnd = new Date(filterDateEnd);
+      filteredEvents = filteredEvents.filter(ev => {
+        const evDate = new Date(ev.date);
+        return evDate >= dateStart && evDate <= dateEnd;
+      });
+    }
+    // Build calendarEvents object by dateKey
+    calendarEvents = {};
+    filteredEvents.forEach(event => {
+      const eventDate = new Date(event.date);
+      if (isNaN(eventDate.getTime())) return;
+      const dateKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}-${eventDate.getDate()}`;
+      if (!calendarEvents[dateKey]) calendarEvents[dateKey] = [];
+      calendarEvents[dateKey].push(event);
+    });
+    renderCalendar();
   }
 
   function renderCalendar() {
@@ -393,6 +459,10 @@
     function navigateToDate(month, year) {
       if (month >= 0 && month <= 11 && year >= 1900 && year <= 2100) {
         currentCalDate = new Date(year, month, 1);
+        filterDateStart = '';
+        filterDateEnd = '';
+        document.getElementById('filter-date-start').value = '';
+        document.getElementById('filter-date-end').value = '';
         fetchEventsForCalendar();
         return true;
       }
@@ -401,11 +471,19 @@
     
     document.getElementById('prev-cal-month').addEventListener('click', function() {
       currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+      filterDateStart = '';
+      filterDateEnd = '';
+      document.getElementById('filter-date-start').value = '';
+      document.getElementById('filter-date-end').value = '';
       fetchEventsForCalendar();
     });
     
     document.getElementById('next-cal-month').addEventListener('click', function() {
       currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+      filterDateStart = '';
+      filterDateEnd = '';
+      document.getElementById('filter-date-start').value = '';
+      document.getElementById('filter-date-end').value = '';
       fetchEventsForCalendar();
     });
     
@@ -460,6 +538,10 @@
           }
         }, 2000);
       }
+      filterDateStart = '';
+      filterDateEnd = '';
+      document.getElementById('filter-date-start').value = '';
+      document.getElementById('filter-date-end').value = '';
     });
     
     // Update original value when calendar changes via other means
@@ -467,7 +549,31 @@
       originalValue = this.value;
       this.select(); // Select all text for easy editing
     });
-    
+
+    // Filter UI events
+    document.getElementById('calendar-filter-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      filterOrg = document.getElementById('filter-org').value;
+      filterDateStart = document.getElementById('filter-date-start').value;
+      filterDateEnd = document.getElementById('filter-date-end').value;
+      fetchEventsForCalendar();
+    });
+
+    document.getElementById('filter-org').addEventListener('change', function(e) {
+      filterOrg = this.value;
+      applyFiltersAndRender();
+    });
+
+    document.getElementById('clear-calendar-filter').addEventListener('click', function() {
+      document.getElementById('filter-org').value = '';
+      document.getElementById('filter-date-start').value = '';
+      document.getElementById('filter-date-end').value = '';
+      filterOrg = '';
+      filterDateStart = '';
+      filterDateEnd = '';
+      fetchEventsForCalendar();
+    });
+
     // Initialize calendar with events
     fetchEventsForCalendar();
 
