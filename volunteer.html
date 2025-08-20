@@ -80,9 +80,10 @@
       <form id="volunteer-filter-form">
         <fieldset style="margin-bottom:1.5em;">
           <legend><strong>Organization:</strong></legend>
-          <div id="org-checkboxes">
-            <span style="color:#888;">Loading organizations...</span>
+          <div id="org-dropdowns">
+            <!-- Org dropdown inputs will be inserted here -->
           </div>
+          <button type="button" id="add-org-dropdown" style="margin-top:0.8em;">+ Add another organization</button>
         </fieldset>
         <fieldset style="margin-bottom:1.5em;">
           <legend><strong>Activities:</strong></legend>
@@ -103,12 +104,16 @@
   </div>
   <script>
     // ---- Utility: Org Name to Asset Normalization ----
-    function orgNameToAsset(orgName) {
-      return orgName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    function normalize(name) {
+      return name
+        .toLowerCase()
+        .replace(/[\s\-]+/g, '_')
+        .replace(/[^a-z0-9_]/g, '')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
     }
-    // List of available assets
+
     const assetFiles = [
-      // ... [asset list unchanged] ...
       '1000014843.png',
       '1000014844.png',
       '1000014845.png',
@@ -153,15 +158,6 @@
       'WildUtah.png',
     ];
 
-    function normalize(name) {
-      return name
-        .toLowerCase()
-        .replace(/[\s\-]+/g, '_')
-        .replace(/[^a-z0-9_]/g, '')
-        .replace(/_+/g, '_')
-        .replace(/^_+|_+$/g, '');
-    }
-
     function getOrgImg(orgName) {
       const nOrg = normalize(orgName);
       const assetMap = {};
@@ -180,20 +176,18 @@
       return 'assets/placeholder.png';
     }
 
-    // ---- State ----
     let allOrganizations = [];
     let allOpportunities = [];
     let allActivities = [];
 
-    // ---- Fetch data and initialize filters ----
+    // --- ADD THESE FUNCTIONS ---
     async function fetchOrganizations() {
       const res = await fetch('https://connectutahtoday-1.onrender.com/api/organizations');
       const data = await res.json();
-      // Return link even if null
       return (data.organizations || []).map(org => ({
         id: org.id,
         name: org.name,
-        link: org.link // can be string, null, or empty
+        link: org.link
       }));
     }
 
@@ -215,24 +209,73 @@
       return allOpps;
     }
 
-    // ---- Render filter checkboxes ----
-    function renderOrgCheckboxes(orgs) {
-      const container = document.getElementById('org-checkboxes');
-      container.innerHTML = '';
-      const anyId = 'org-any';
-      const anyBox = document.createElement('label');
-      anyBox.innerHTML = `<input type="checkbox" id="${anyId}" name="orgs" value="Any" checked> Any`;
-      container.appendChild(anyBox);
-      container.appendChild(document.createElement('br'));
-      orgs.forEach(org => {
-        const id = `org-${org.id}`;
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" id="${id}" name="orgs" value="${org.name}" checked> ${org.name}`;
-        container.appendChild(label);
-        container.appendChild(document.createElement('br'));
+    // --- DROPDOWN AUTOCOMPLETE LOGIC ---
+    function createOrgDropdown(index = 0) {
+      // Create a text input with datalist for autocomplete
+      const wrapper = document.createElement('div');
+      wrapper.className = "org-dropdown-wrapper";
+      wrapper.style.marginBottom = "0.6em";
+      wrapper.innerHTML = `
+        <input type="text" class="org-dropdown-input" list="org-list" placeholder="Type or select an organization" autocomplete="off" data-index="${index}" style="min-width:220px;padding:0.4em;">
+        <button type="button" class="remove-org-dropdown" style="margin-left:0.6em;display:none;">Remove</button>
+      `;
+      return wrapper;
+    }
+
+    function renderOrgDropdowns(orgs) {
+      const orgDropdownsDiv = document.getElementById('org-dropdowns');
+      orgDropdownsDiv.innerHTML = '';
+      // Datalist for autofill
+      let datalist = document.getElementById('org-list');
+      if (!datalist) {
+        datalist = document.createElement('datalist');
+        datalist.id = "org-list";
+        document.body.appendChild(datalist);
+      }
+      datalist.innerHTML = orgs.map(org =>
+        `<option value="${org.name}"></option>`
+      ).join('');
+      // Place one dropdown initially
+      orgDropdownsDiv.appendChild(createOrgDropdown(0));
+    }
+
+    // --- Dynamic addition/removal of dropdowns ---
+    function setupOrgDropdownLogic() {
+      const orgDropdownsDiv = document.getElementById('org-dropdowns');
+      const addBtn = document.getElementById('add-org-dropdown');
+
+      addBtn.addEventListener('click', () => {
+        const dropdowns = orgDropdownsDiv.querySelectorAll('.org-dropdown-wrapper');
+        const newDropdown = createOrgDropdown(dropdowns.length);
+        newDropdown.querySelector('.remove-org-dropdown').style.display = 'inline-block';
+        orgDropdownsDiv.appendChild(newDropdown);
+      });
+
+      orgDropdownsDiv.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-org-dropdown')) {
+          e.target.parentElement.remove();
+          filterOpportunities();
+        }
+      });
+
+      orgDropdownsDiv.addEventListener('input', (e) => {
+        if (e.target.classList.contains('org-dropdown-input')) {
+          filterOpportunities();
+        }
       });
     }
 
+    function getSelectedOrgs() {
+      const orgDropdownsDiv = document.getElementById('org-dropdowns');
+      const inputs = orgDropdownsDiv.querySelectorAll('.org-dropdown-input');
+      let selected = [];
+      inputs.forEach(input => {
+        if (input.value.trim() !== "") selected.push(input.value.trim());
+      });
+      return selected.length ? selected : ["Any"];
+    }
+
+    // --- Activity checkbox logic ---
     function renderActivityCheckboxes(activities) {
       const container = document.getElementById('activity-checkboxes');
       container.innerHTML = '';
@@ -250,7 +293,11 @@
       });
     }
 
-    // ---- Render opportunity list ----
+    function getSelectedActivities() {
+      const checkboxes = document.querySelectorAll('input[name="activities"]:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+
     function renderOpportunities(opps, orgs, activities) {
       const section = document.getElementById('opportunity-list');
       if (!opps.length) {
@@ -265,7 +312,6 @@
       });
       Object.keys(orgMap).forEach(orgName => {
         const orgData = orgMap[orgName];
-        // Only show link if it is non-empty and not just whitespace
         const hasLink = orgData.link && typeof orgData.link === 'string' && orgData.link.trim() !== '';
         html += `<div class="opportunity-item">
           <img src="${getOrgImg(orgName)}" alt="${orgName}" class="opportunity-img">
@@ -285,15 +331,6 @@
       section.innerHTML = html;
     }
 
-    // Filtering logic
-    function getSelectedOrgs() {
-      const checkboxes = document.querySelectorAll('input[name="orgs"]:checked');
-      return Array.from(checkboxes).map(cb => cb.value);
-    }
-    function getSelectedActivities() {
-      const checkboxes = document.querySelectorAll('input[name="activities"]:checked');
-      return Array.from(checkboxes).map(cb => cb.value);
-    }
     function filterOpportunities() {
       let orgs = getSelectedOrgs();
       let acts = getSelectedActivities();
@@ -307,22 +344,8 @@
       renderOpportunities(filtered, allOrganizations, allActivities);
     }
 
-    // Checkbox "Any" logic
-    function setupAnyCheckboxLogic() {
-      const orgContainer = document.getElementById('org-checkboxes');
-      orgContainer.addEventListener('change', e => {
-        if (e.target.name === 'orgs') {
-          const anyBox = orgContainer.querySelector('input[value="Any"]');
-          const allBoxes = Array.from(orgContainer.querySelectorAll('input[type="checkbox"]:not([value="Any"])'));
-          if (e.target.value === 'Any') {
-            allBoxes.forEach(cb => cb.checked = anyBox.checked);
-          } else {
-            if (!e.target.checked) anyBox.checked = false;
-            if (allBoxes.every(cb => cb.checked)) anyBox.checked = true;
-          }
-          filterOpportunities();
-        }
-      });
+    // Checkbox "Any" logic for activities only
+    function setupActivityAnyCheckboxLogic() {
       const actContainer = document.getElementById('activity-checkboxes');
       actContainer.addEventListener('change', e => {
         if (e.target.name === 'activities') {
@@ -340,37 +363,42 @@
     }
 
     // ---- Page initialization ----
-    async function initializeVolunteerPage() {
-      allOrganizations = await fetchOrganizations();
-      renderOrgCheckboxes(allOrganizations);
+    document.addEventListener("DOMContentLoaded", function() {
+      async function initializeVolunteerPage() {
+        allOrganizations = await fetchOrganizations();
+        renderOrgDropdowns(allOrganizations);
 
-      allOpportunities = await fetchAllOpportunities();
+        allOpportunities = await fetchAllOpportunities();
 
-      const actSet = new Set(allOpportunities.map(o => o.activity));
-      allActivities = Array.from(actSet).sort();
-      renderActivityCheckboxes(allActivities);
+        const actSet = new Set(allOpportunities.map(o => o.activity));
+        allActivities = Array.from(actSet).sort();
+        renderActivityCheckboxes(allActivities);
 
-      renderOpportunities(allOpportunities, allOrganizations, allActivities);
+        renderOpportunities(allOpportunities, allOrganizations, allActivities);
 
-      setupAnyCheckboxLogic();
-    }
+        setupOrgDropdownLogic();
+        setupActivityAnyCheckboxLogic();
+      }
 
-    initializeVolunteerPage();
+      initializeVolunteerPage();
 
-    // ---- Disclaimer popover logic ----
-    const disclaimerLink = document.getElementById('disclaimer-link');
-    const disclaimerPopover = document.getElementById('disclaimer-popover');
-    const closeDisclaimer = document.getElementById('close-disclaimer');
-    disclaimerLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      disclaimerPopover.style.display = 'block';
-    });
-    closeDisclaimer.addEventListener('click', function() {
-      disclaimerPopover.style.display = 'none';
-    });
-    window.addEventListener('click', function(e) {
-      if (disclaimerPopover.style.display === 'block' && !disclaimerPopover.contains(e.target) && e.target !== disclaimerLink) {
-        disclaimerPopover.style.display = 'none';
+      // ---- Disclaimer popover logic ----
+      const disclaimerLink = document.getElementById('disclaimer-link');
+      const disclaimerPopover = document.getElementById('disclaimer-popover');
+      const closeDisclaimer = document.getElementById('close-disclaimer');
+      if(disclaimerLink && disclaimerPopover && closeDisclaimer){
+        disclaimerLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          disclaimerPopover.style.display = 'block';
+        });
+        closeDisclaimer.addEventListener('click', function() {
+          disclaimerPopover.style.display = 'none';
+        });
+        window.addEventListener('click', function(e) {
+          if (disclaimerPopover.style.display === 'block' && !disclaimerPopover.contains(e.target) && e.target !== disclaimerLink) {
+            disclaimerPopover.style.display = 'none';
+          }
+        });
       }
     });
   </script>
