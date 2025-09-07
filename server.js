@@ -51,12 +51,14 @@ app.post('/api/org-signin', async (req, res) => {
 // API to get all organizations
 app.get('/api/organizations', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name FROM organizations ORDER BY name');
-    res.json({ organizations: result.rows });
+const result = await pool.query(`SELECT id, name, link FROM organizations ORDER BY name`);
+console.log('DEBUG organizations:', result.rows);
+res.json({ organizations: result.rows });
   } catch (error) {
     console.error('Error fetching organizations:', error.stack || error);
     res.status(500).json({ error: 'Could not fetch organizations' });
   }
+
 });
 
 // API to get volunteer opportunities for an organization by organization_id
@@ -94,57 +96,6 @@ app.post('/api/opportunities', async (req, res) => {
     res.status(500).json({ error: 'Failed to add opportunity' });
   }
 });
-
-/**
- * Mobilize Events API Proxy (production endpoint)
- * CHANGE TO PRODUCTION
- */
-/*
-async function fetchMobilizeEvents(reqQuery) {
-  const { timeMin, timeMax } = reqQuery;
-  const start = timeMin ? Math.floor(new Date(timeMin).getTime() / 1000) : undefined;
-  const end = timeMax ? Math.floor(new Date(timeMax).getTime() / 1000) : undefined;
-
-  // Filter events by org ids 50 - 57 REPLACE WITH ACTUAL ORGS
-  const orgIds = [50, 51, 52, 53, 54, 55, 56, 57];
-  let url = 'https://staging-api.mobilize.us/v1/events?';
-  orgIds.forEach(id => url += `organization_id=${id}&`);
-  if (start) url += `timeslot_start=gte_${start}&`;
-  if (end) url += `timeslot_start=lt_${end}&`;
-
-  try {
-    const response = await axios.get(url);
-    console.log("Mobilize events fetched:", response.data);
-    const events = (response.data.data || [])
-      .map(event => {
-        const filteredTimeslots = (event.timeslots || []).filter(ts => {
-          if (!ts.start_date) return false;
-          return (!start || ts.start_date >= start) && (!end || ts.start_date < end);
-        });
-        if (filteredTimeslots.length === 0) return null;
-        return filteredTimeslots.map(timeslot => ({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          date: timeslot.start_date ? new Date(timeslot.start_date * 1000).toISOString() : null,
-          endDate: timeslot.end_date ? new Date(timeslot.end_date * 1000).toISOString() : null,
-          featured_image_url: event.featured_image_url,
-          org: event.sponsor && event.sponsor.name,
-          url: event.browser_url,
-          event_type: event.event_type,
-          source: 'mobilize'
-        }));
-      })
-      .flat()
-      .filter(Boolean);
-
-    return { items: events };
-  } catch (error) {
-    console.error('Error fetching Mobilize events:', error.message);
-    return { items: [] };
-  }
-}
-  */
 
 /**
  * Google Calendar API Proxy (production)
@@ -313,14 +264,15 @@ app.get('/api/all-events', async (req, res) => {
 
 // API to add a new organization
 app.post('/api/organizations', async (req, res) => {
-  const { name } = req.body;
+  const { name, link } = req.body;
   if (!name) {
     return res.status(400).json({ error: 'Organization name is required' });
   }
   try {
+    // Allow link to be set on add, otherwise insert null
     const result = await pool.query(
-      'INSERT INTO organizations (name) VALUES ($1) RETURNING id',
-      [name]
+      'INSERT INTO organizations (name, link) VALUES ($1, $2) RETURNING id',
+      [name, link || null]
     );
     res.json({ id: result.rows[0].id });
   } catch (error) {

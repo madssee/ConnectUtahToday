@@ -184,6 +184,9 @@
     async function fetchOrganizations() {
       const res = await fetch('https://connectutahtoday-1.onrender.com/api/organizations');
       const data = await res.json();
+      (data.organizations || []).forEach(org => {
+        console.log('Organization link:', org.link);
+      });
       return (data.organizations || []).map(org => ({
         id: org.id,
         name: org.name,
@@ -308,6 +311,7 @@
       const orgMap = {};
       opps.forEach(opp => {
         if (!orgMap[opp.orgName]) orgMap[opp.orgName] = { activities: [], link: opp.orgLink };
+        console.log(opp.orgLink);
         orgMap[opp.orgName].activities.push(opp.activity);
       });
       Object.keys(orgMap).forEach(orgName => {
