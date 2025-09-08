@@ -311,9 +311,3 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-Promise.all(checked.map(op =>
-  fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization_id=${org}&opportunity=${encodeURIComponent(op)}`, {
-    method: 'DELETE'
-  })
-  .then(res => res.json())
-))
