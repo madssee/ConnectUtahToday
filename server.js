@@ -79,6 +79,28 @@ app.get('/api/opportunities', async (req, res) => {
   }
 });
 
+// remove opportunity for an organization
+app.delete('/api/opportunities', async (req, res) => {
+  const organization_id = req.body.organization_id || req.query.organization_id;
+  const opportunities = req.body.opportunities || req.query.opportunities;
+
+  // Ensure opportunities is an array
+  if (!organization_id || !Array.isArray(opportunities) || opportunities.length === 0) {
+    return res.status(400).json({ error: 'organization_id and opportunities array are required' });
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM opportunities WHERE organization_id = $1 AND opportunity = ANY($2::text[])',
+      [organization_id, opportunities]
+    );
+    res.json({ success: true, deleted: result.rowCount });
+  } catch (error) {
+    console.error('Error deleting opportunities:', error.stack || error);
+    res.status(500).json({ error: 'Failed to delete opportunities' });
+  }
+});
+
 // API to add a new opportunity for an organization
 app.post('/api/opportunities', async (req, res) => {
   const { organization_id, opportunity } = req.body;
@@ -288,3 +310,10 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+Promise.all(checked.map(op =>
+  fetch(`https://connectutahtoday-1.onrender.com/api/opportunities?organization_id=${org}&opportunity=${encodeURIComponent(op)}`, {
+    method: 'DELETE'
+  })
+  .then(res => res.json())
+))
