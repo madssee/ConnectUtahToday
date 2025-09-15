@@ -22,6 +22,33 @@
         <label for="org-dropdown">Select an organization:</label><br>
         <select id="org-dropdown" name="org-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
           <option value="">-- Choose --</option>
+          <option value="19">Armed Queers Salt Lake City</option>
+          <option value="2">Bakers for Palestine</option>
+          <option value="20">BTMC</option>
+          <option value="13">Cache Valley Mutual Aid</option>
+          <option value="22">Camping in Color SLC</option>
+          <option value="16">Comunidades Unidas</option>
+          <option value="3">DSA</option>
+          <option value="24">Fish For Garbage</option>
+          <option value="11">Green Wave Utah</option>
+          <option value="25">ibikeutah</option>
+          <option value="1">Indivisible</option>
+          <option value="8">Ken Sanders Rare Books</option>
+          <option value="10">MyUEA</option>
+          <option value="26">Project Rainbow</option>
+          <option value="27">Salt Lake Area Queer Climbers</option>
+          <option value="14">Salt Lake Harm Reduction Project</option>
+          <option value="15">Sierra Club Utah</option>
+          <option value="4">SLC Mutual Aid</option>
+          <option value="12">SLCounty Community Exchange</option>
+          <option value="28">SLC Queer Latin Dance</option>
+          <option value="9">uhwunited</option>
+          <option value="30">Under the Umbrella Bookstore</option>
+          <option value="7">United Mountain Workers</option>
+          <option value="18">Urban Indian Center of Salt Lake</option>
+          <option value="17">Utah State Progressive Caucus</option>
+          <option value="31">Wasatch Community Gardens</option>
+          <option value="32">Wasatch Trails Collective</option>
           <option value="__add_new__">+ Add New Organization</option>
         </select><br><br>
 
@@ -44,18 +71,54 @@
           <button type="button" id="select-or-delete-btn" style="margin-right:0.5em;">Select</button>
         </div>
 
-        <!-- Image Upload Section -->
-        <div id="image-upload-section" style="margin-bottom:1em;">
-          <label for="org-image">Upload Organization Image:</label><br>
-          <input type="file" id="org-image" name="org-image" accept="image/*" style="margin-top:0.5em;">
-          <button type="button" id="upload-image-btn" style="margin-top:0.5em;">Upload Image</button>
-          <div id="image-upload-message" style="color:#b00020;margin-top:0.5em;display:none;"></div>
-        </div>
-
-        <div style="text-align:center;">
+        <div style="text-align:left;">
           <button type="submit" class="btn" style="margin-top:1em;">Submit</button>
         </div>
       </form>
+      <!-- Image Upload Section -->
+      <div id="image-upload-container" style="margin:2em 0 1em 0; padding:1em; background:#f8f8f8; border-radius:8px;">
+        <h3>Event Flyer Upload</h3>
+        <form id="image-upload-form">
+          <label for="org-image">Select image:</label><br>
+          <input type="file" id="org-image" name="org-image" accept="image/*" style="margin-top:0.5em;"><br> 
+          <br><label for="org-img-dropdown">Organization:</label><br>
+            <select id="org-img-dropdown" name="org-img-dropdown" style="margin-top:0.5em;width:100%;padding:0.5em;">
+              <option value="">-- Choose --</option>
+              <option value="19">Armed Queers Salt Lake City</option>
+              <option value="2">Bakers for Palestine</option>
+              <option value="20">BTMC</option>
+              <option value="13">Cache Valley Mutual Aid</option>
+              <option value="22">Camping in Color SLC</option>
+              <option value="16">Comunidades Unidas</option>
+              <option value="3">DSA</option>
+              <option value="24">Fish For Garbage</option>
+              <option value="11">Green Wave Utah</option>
+              <option value="25">ibikeutah</option>
+              <option value="1">Indivisible</option>
+              <option value="8">Ken Sanders Rare Books</option>
+              <option value="10">MyUEA</option>
+              <option value="26">Project Rainbow</option>
+              <option value="27">Salt Lake Area Queer Climbers</option>
+              <option value="14">Salt Lake Harm Reduction Project</option>
+              <option value="15">Sierra Club Utah</option>
+              <option value="4">SLC Mutual Aid</option>
+              <option value="12">SLCounty Community Exchange</option>
+              <option value="28">SLC Queer Latin Dance</option>
+              <option value="9">uhwunited</option>
+              <option value="30">Under the Umbrella Bookstore</option>
+              <option value="7">United Mountain Workers</option>
+              <option value="18">Urban Indian Center of Salt Lake</option>
+              <option value="17">Utah State Progressive Caucus</option>
+              <option value="31">Wasatch Community Gardens</option>
+              <option value="32">Wasatch Trails Collective</option>
+              <option value="__add_new__">+ Add New Organization</option>
+            </select><br>
+          <label for="image-date-input">Date (dd/mm/yy):</label><br>
+          <input type="text" id="image-date-input" name="image-date-input" required placeholder="dd/mm/yy" pattern="^\d{2}/\d{2}/\d{2}$" style="width:70%;padding:0.4em;"><br><br>
+          <button type="submit" id="upload-image-btn" style="margin-top:0.5em;">Upload Image</button>
+        </form>
+        <div id="image-upload-message" style="color:#b00020;margin-top:0.5em;display:none;"></div>
+      </div>
     </div>
   </main>
   <script>
@@ -65,7 +128,8 @@
     const passwordSection = document.getElementById('password-section');
     const orgFormSection = document.getElementById('org-form-section');
     const orgForm = document.getElementById('org-form');
-    const orgDropdown = document.getElementById('org-dropdown');
+    const orgDropdown = document.getElementById('org-dropdown'); // Only one dropdown, used everywhere
+    const orgImgDropdown = document.getElementById('org-img-dropdown'); // Only one dropdown, used everywhere
     const opportunityCheckboxes = document.getElementById('opportunity-checkboxes');
     const addNewBtn = document.getElementById('add-new-opportunity');
     const newOpportunityContainer = document.getElementById('new-opportunity-container');
@@ -78,10 +142,12 @@
     const selectOrDeleteBtn = document.getElementById('select-or-delete-btn');
     let selectionMode = false;
 
-    // Image upload section
+    // Image upload section (uses same orgDropdown)
+    const imageUploadForm = document.getElementById('image-upload-form');
     const uploadImageBtn = document.getElementById('upload-image-btn');
     const orgImageInput = document.getElementById('org-image');
     const imageUploadMessage = document.getElementById('image-upload-message');
+    const imageDateInput = document.getElementById('image-date-input');
 
     function renderOpportunities(opportunities, withCheckboxes = false) {
       opportunityCheckboxes.innerHTML = '';
@@ -107,20 +173,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      fetch('https://connectutahtoday-1.onrender.com/api/organizations')
-        .then(res => res.json())
-        .then(data => {
-          Array.from(orgDropdown.options).forEach(opt => {
-            if (opt.value && opt.value !== "__add_new__") opt.remove();
-          });
-          (data.organizations || []).forEach(org => {
-            const option = document.createElement('option');
-            option.value = org.id;
-            option.textContent = org.name;
-            const addNewOption = orgDropdown.querySelector('option[value="__add_new__"]');
-            orgDropdown.insertBefore(option, addNewOption);
-          });
-        });
+      // If orgs are dynamically loaded, update options here
+      // Otherwise, options are static from HTML above
     });
 
     passwordForm.addEventListener('submit', function(e) {
@@ -272,15 +326,27 @@
       }
     });
 
-    // Image upload logic
-    uploadImageBtn.addEventListener('click', async function() {
+    // Image upload logic for new form with two required inputs
+    function isValidDate(dateStr) {
+      return /^\d{2}\/\d{2}\/\d{2}$/.test(dateStr);
+    }
+
+    imageUploadForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
       const file = orgImageInput.files[0];
-      const org = orgDropdown.value;
+      const org = orgImgDropdown.value;
+      const date = imageDateInput.value.trim();
       imageUploadMessage.style.display = 'none';
       imageUploadMessage.textContent = '';
 
       if (!org || org === "__add_new__") {
         imageUploadMessage.textContent = "Select an organization before uploading an image.";
+        imageUploadMessage.style.display = 'block';
+        imageUploadMessage.style.color = "#b00020";
+        return;
+      }
+      if (!date || !isValidDate(date)) {
+        imageUploadMessage.textContent = "Date is required in dd/mm/yy format.";
         imageUploadMessage.style.display = 'block';
         imageUploadMessage.style.color = "#b00020";
         return;
@@ -295,6 +361,7 @@
       const formData = new FormData();
       formData.append('image', file);
       formData.append('organization', org);
+      formData.append('date', date);
 
       uploadImageBtn.disabled = true;
       uploadImageBtn.textContent = "Uploading...";
@@ -307,11 +374,28 @@
         const result = await response.json();
 
         if (response.ok && result.url) {
+          console.log("Image URL:", result.url)
           imageUploadMessage.textContent = "Image uploaded successfully!";
           imageUploadMessage.style.color = "green";
           imageUploadMessage.style.display = 'block';
-          // Optionally show the image
           imageUploadMessage.innerHTML += `<br><img src="${result.url}" style="max-width:100%;margin-top:1em;">`;
+           fetch('https://connectutahtoday-1.onrender.com/api/images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: result.url,
+              organization: orgImgDropdown.value,
+              date: imageDateInput.value.trim()
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            console.log("Saved in DB:", data);
+          })
+          .catch(err => {
+            console.error("Error saving to DB:", err);
+          });
+        
         } else {
           imageUploadMessage.textContent = result.error || "Failed to upload image.";
           imageUploadMessage.style.color = "#b00020";

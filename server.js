@@ -303,6 +303,24 @@ app.post('/api/organizations', async (req, res) => {
   }
 });
 
+// Image upload Postgres logic
+app.post('/api/images', async (req, res) => {
+  const { url, organization, date } = req.body;
+  if (!url || !organization || !date) {
+    return res.status(400).json({ error: 'url, organization, and date required' });
+  }
+  try {
+    const result = await pool.query(
+      'INSERT INTO images (url, organization, date) VALUES ($1, $2, $3) RETURNING *',
+      [url, organization, date]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error saving image:', err);
+    res.status(500).json({ error: 'Error saving image data' });
+  }
+});
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
