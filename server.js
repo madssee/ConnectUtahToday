@@ -235,51 +235,46 @@ app.get('/api/google-calendar', async (req, res) => {
 app.get('/api/all-events', async (req, res) => {
   console.log('=== COMBINED EVENTS REQUEST ===');
   try {
-    const { timeMin, timeMax } = req.query;
-
-    // Use production API base for internal requests
+    const { timeMin, timeMax, org } = req.query;
     const apiBase = 'https://connectutahtoday-1.onrender.com';
 
-    // Fetch from both APIs in parallel using Promise.allSettled
-    const [mobilizeResponse, googleResponse] = await Promise.allSettled([
+    // Fetch from all three APIs in parallel
+    const [mobilizeResponse, googleResponse, imageResponse] = await Promise.allSettled([
       axios.get(`${apiBase}/api/mobilize-events?${new URLSearchParams(req.query)}`),
-      axios.get(`${apiBase}/api/google-calendar?${new URLSearchParams(req.query)}`)
+      axios.get(`${apiBase}/api/google-calendar?${new URLSearchParams(req.query)}`),
+      axios.get(`${apiBase}/api/image-events?${new URLSearchParams(req.query)}`)
     ]);
 
     let allEvents = [];
 
-    // Add mobilize events if successful
     if (mobilizeResponse.status === 'fulfilled') {
       const mobilizeEvents = mobilizeResponse.value.data.items || [];
       allEvents = allEvents.concat(mobilizeEvents);
       console.log('Added mobilize events:', mobilizeEvents.length);
-    } else {
-      console.log('Mobilize API failed:', mobilizeResponse.reason?.message);
     }
-
-    // Add google events if successful
     if (googleResponse.status === 'fulfilled') {
       const googleEvents = googleResponse.value.data.items || [];
       allEvents = allEvents.concat(googleEvents);
       console.log('Added Google Calendar events:', googleEvents.length);
+    }
+    if (imageResponse.status === 'fulfilled') {
+      const imageEvents = imageResponse.value.data.items || [];
+      allEvents = allEvents.concat(imageEvents);
+      console.log('Added image events:', imageEvents.length);
     } else {
-      console.log('Google Calendar API failed:', googleResponse.reason?.message);
+      console.error('Image events fetch failed:', imageResponse);
     }
 
-    // Sort all events by date
+    // Sort by date
     allEvents.sort((a, b) => {
       const dateA = new Date(a.date || '1970-01-01');
       const dateB = new Date(b.date || '1970-01-01');
       return dateA - dateB;
     });
 
-    console.log('Total combined events:', allEvents.length);
-    console.log('=== COMBINED EVENTS SUCCESS ===');
     res.json({ items: allEvents });
   } catch (error) {
     console.error('=== COMBINED EVENTS ERROR ===');
-    console.error('Error:', error);
-    console.error('=== END ERROR ===');
     res.status(500).json({ error: 'Failed to fetch combined events', details: error.message });
   }
 });
@@ -318,6 +313,54 @@ app.post('/api/images', async (req, res) => {
   } catch (err) {
     console.error('Error saving image:', err);
     res.status(500).json({ error: 'Error saving image data' });
+  }
+});
+
+// API to fetch events from images table
+app.get('/api/image-events', async (req, res) => {
+  try {
+    // Optional filters
+    const { org, timeMin, timeMax } = req.query;
+    let query = 'SELECT * FROM images';
+    const params = [];
+    const where = [];
+    if (org) {
+      where.push('organization ILIKE $' + (params.length + 1));
+      params.push(`%${org}%`);
+    }
+    if (timeMin) {
+      where.push('date >= $' + (params.length + 1));
+      params.push(timeMin);
+    }
+    if (timeMax) {
+      where.push('date <= $' + (params.length + 1));
+      params.push(timeMax);
+    }
+    if (where.length) query += ' WHERE ' + where.join(' AND ');
+    query += ' ORDER BY date ASC';
+
+    const result = await pool.query(query, params);
+
+    // Log raw rows from the images table
+    console.log('Images table result:', result.rows);
+
+    // Normalize to event structure
+    const events = result.rows.map(row => ({
+      id: `image-${row.id}`,
+      summary: '', 
+      description: '', 
+      date: row.date,
+      endDate: row.date,
+      image: row.url,
+      org: row.organization,
+      url: row.url,
+      event_type: 'image',
+      source: 'image'
+    }));
+    res.json({ items: events });
+  } catch (error) {
+    console.error('Error fetching image events:', error);
+    res.status(500).json({ error: 'Failed to fetch image events' });
   }
 });
 
