@@ -72,8 +72,9 @@
         </div>
 
         <div style="text-align:left;">
-          <button type="submit" class="btn" style="margin-top:1em;">Submit</button>
+          <button type="submit" id="org-form-submit-btn" class="btn" style="margin-top:1em;">Submit</button>
         </div>
+        <div id="org-form-confirmation" style="display:none;color:green;margin-top:1em;">Organization information updated successfully!</div>
       </form>
       <!-- Image Upload Section -->
       <div id="image-upload-container" style="margin:2em 0 1em 0; padding:1em; background:#f8f8f8; border-radius:8px;">
@@ -119,6 +120,10 @@
         </form>
         <div id="image-upload-message" style="color:#b00020;margin-top:0.5em;display:none;"></div>
       </div>
+      <!-- Return to Homepage Button (shared for both forms) -->
+      <div style="text-align:center;margin-top:2em;">
+        <button type="button" id="return-home-btn" class="btn" style="padding:0.7em 2em;font-size:1em;">Return to Homepage</button>
+      </div>
     </div>
   </main>
   <script>
@@ -148,6 +153,11 @@
     const orgImageInput = document.getElementById('org-image');
     const imageUploadMessage = document.getElementById('image-upload-message');
     const imageDateInput = document.getElementById('image-date-input');
+    // Org form confirmation
+    const orgFormConfirmation = document.getElementById('org-form-confirmation');
+    // Return home button
+    const returnHomeBtn = document.getElementById('return-home-btn');
+
     function ddmmyyToIso(str) {
       // expects "dd/mm/yy"
       const [dd, mm, yy] = str.split('/');
@@ -340,6 +350,7 @@
       e.preventDefault();
       const file = orgImageInput.files[0];
       const org = orgImgDropdown.value;
+      const orgText = orgImgDropdown.options[orgImgDropdown.selectedIndex]?.text || ""; // Get the display name
       const date = imageDateInput.value.trim();
       const isoDate = ddmmyyToIso(date);
       imageUploadMessage.style.display = 'none';
@@ -366,7 +377,7 @@
 
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('organization', org);
+      formData.append('organization', orgText); // Store the organization name instead of ID
       formData.append('date', isoDate);
 
       uploadImageBtn.disabled = true;
@@ -390,7 +401,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               url: result.url,
-              organization: orgImgDropdown.value,
+              organization: orgText, // Store the organization name instead of ID
               //date: imageDateInput.value.trim()
               date: isoDate
             })
@@ -418,6 +429,7 @@
       }
     });
 
+    // Organization form submit updated to show confirmation instead of redirecting or hiding forms
     orgForm.addEventListener('submit', function(e) {
       e.preventDefault();
       if (!orgDropdown.value) {
@@ -425,8 +437,16 @@
         orgDropdown.focus();
         return;
       }
-      passwordSection.style.display = 'block';
-      orgFormSection.style.display = 'none';
+      // Here you could also collect opportunity values, etc. and post to your API if needed.
+      orgFormConfirmation.style.display = 'block';
+      setTimeout(() => {
+        orgFormConfirmation.style.display = 'none';
+      }, 3000);
+      // Do not hide or navigate away.
+    });
+
+    // Return to Homepage button event
+    returnHomeBtn.addEventListener('click', function() {
       window.location.href = "index.html";
     });
   </script>
