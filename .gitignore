@@ -1,1 +1,4 @@
 .env
+r2-worker/node_modules/
+node_modules/
+**/node_modules/
