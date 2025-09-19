@@ -6,15 +6,43 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <nav>
-    <a href="index.html">Home</a> |
-    <a href="calendar.html">Calendar</a> |
-    <a href="events.html">Events</a> |
-    <a href="volunteer.html">Volunteering</a> |
-    <a href="support.html">Support a Cause</a> |
-    <a href="latest-updates.html">Latest Updates</a> |
-    <a href="activism.html">Activism</a> |
-  </nav>
+  <div class="site-nav-wrapper">
+    <nav id="site-nav">
+      <div class="links-container">
+        <div class="link-wrapper">
+          <a href="index.html">Home</a>
+        </div>
+        <div class="link-wrapper">
+          <a href="calendar.html">Calendar</a>
+        </div>
+        <div class="link-wrapper">
+          <a href="events.html">Events</a>
+        </div>
+        <div class="link-wrapper">
+          <a href="volunteer.html">Volunteering</a>
+        </div>
+        <div class="link-wrapper">
+          <a href="support.html">Support a Cause</a>
+        </div>
+        <div class="link-wrapper">
+          <a href="latest-updates.html">Latest Updates</a>
+        </div>
+        <div class="link-wrapper">
+          <a href="activism.html">Activism</a>
+        </div>
+      </div>
+    </nav>
+    <button
+      id="toggle-site-nav"
+      aria-controls="main-navigation"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
   <main>
     <h1>Upcoming Events</h1>
     <div style="text-align:left; margin: 1.5em 0 0.5em 0;">
@@ -29,39 +57,39 @@
     <!-- Event Feed -->
     <div id="event-feed" style="margin-top: 20px;">
       <h2>Events</h2>
-      
+
       <!-- Date Filter Controls -->
       <div id="filter-controls" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
         <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
           <label style="font-weight: bold;">Filter by:</label>
-          
+
           <div>
             <label>
               <input type="radio" name="filter-type" value="all" checked> All Events
             </label>
           </div>
-          
+
           <div>
             <label>
               <input type="radio" name="filter-type" value="month"> Month:
             </label>
             <input type="month" id="month-filter" style="margin-left: 5px;" disabled>
           </div>
-          
+
           <div>
             <label>
               <input type="radio" name="filter-type" value="week"> Week of:
             </label>
             <input type="date" id="week-filter" style="margin-left: 5px;" disabled>
           </div>
-          
+
           <div>
             <label>
               <input type="radio" name="filter-type" value="day"> Specific Day:
             </label>
             <input type="date" id="day-filter" style="margin-left: 5px;" disabled>
           </div>
-          
+
           <div>
             <label>
               <input type="radio" name="filter-type" value="range"> Date Range:
@@ -70,7 +98,7 @@
             <span style="margin: 0 5px;">to</span>
             <input type="date" id="end-date-filter" disabled>
           </div>
-          
+
           <div>
             <label>
               Organization:
@@ -78,13 +106,13 @@
             </label>
           </div>
         </div>
-        
+
         <div style="margin-top: 10px;">
           <button id="apply-filter" style="padding: 8px 16px; background: #007cba; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply Filter</button>
           <button id="clear-filter" style="padding: 8px 16px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">Clear Filter</button>
         </div>
       </div>
-      
+
       <div id="event-list">Loading events...</div>
     </div>
   </main>
@@ -416,6 +444,17 @@
       if (eventsDisclaimerPopover.style.display === 'block' && !eventsDisclaimerPopover.contains(e.target) && e.target !== eventsDisclaimerLink) {
         eventsDisclaimerPopover.style.display = 'none';
       }
+    });
+
+    // Site mobile navigation menu
+    const menuButton = document.getElementById('toggle-site-nav');
+    const siteNav = document.getElementById('site-nav');
+
+    menuButton.addEventListener('click', function() {
+      const expanded = menuButton.getAttribute('aria-expanded') === 'true';
+
+      menuButton.setAttribute('aria-expanded', Boolean(!expanded).toString());
+      siteNav.classList.toggle('nav-opened');
     });
   </script>
 </body>
